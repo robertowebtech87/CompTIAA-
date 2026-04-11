@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Results — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="results-page">
+  <div class="results-hero {{ 'pass-hero' if attempt.passed else 'fail-hero' }}">
+    <div class="result-verdict">{{ '✓ PASSED' if attempt.passed else '✗ FAILED' }}</div>
+    <div class="result-score-big">{{ attempt.scaled_score }}<span class="score-denom">/900</span></div>
+    <div class="score-threshold">Passing score: 675</div>
+    <div class="result-meta-row">
+      <span>{{ attempt.correct_answers }}/{{ attempt.total_questions }} correct</span>
+      <span>·</span>
+      <span>{{ attempt.score_percent | round(1) }}%</span>
+      <span>·</span>
+      <span>{{ '%d:%02d'|format(attempt.time_taken // 60, attempt.time_taken % 60) }} min</span>
+    </div>
+  </div>
+
+  <!-- Weak Areas Breakdown -->
+  {% if domain_breakdown %}
+  <div class="weak-areas-section">
+    <h2 class="section-title">Performance by Category</h2>
+    <div class="domain-bars">
+      {% for d in domain_breakdown %}
+      <div class="domain-bar-row">
+        <div class="domain-bar-label">
+          <span class="domain-name">{{ d.domain }}</span>
+          <span class="domain-score {{ d.level }}">{{ d.correct }}/{{ d.total }} &nbsp;{{ d.percent }}%</span>
+        </div>
+        <div class="domain-bar-track">
+          <div class="domain-bar-fill {{ d.level }}" style="width: {{ d.percent }}%"></div>
+        </div>
+        {% if d.level == 'weak' %}
+        <span class="domain-tag-weak">⚠ Needs work</span>
+        {% elif d.level == 'ok' %}
+        <span class="domain-tag-ok">→ Getting there</span>
+        {% else %}
+        <span class="domain-tag-strong">✓ Strong</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Question Breakdown -->
+  <div class="results-breakdown">
+    <h2 class="section-title">Question Breakdown</h2>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterResults('all', this)">All ({{ details|length }})</button>
+      <button class="filter-btn" onclick="filterResults('correct', this)">Correct ({{ details|selectattr('is_correct')|list|length }})</button>
+      <button class="filter-btn" onclick="filterResults('wrong', this)">Wrong ({{ details|rejectattr('is_correct')|list|length }})</button>
+    </div>
+    <div class="qa-list" id="qa-list">
+      {% for d in details %}
+      <div class="qa-item {{ 'correct' if d.is_correct else 'wrong' }}" data-status="{{ 'correct' if d.is_correct else 'wrong' }}">
+        <div class="qa-header" onclick="toggleQA(this)">
+          <span class="qa-icon">{{ '✓' if d.is_correct else '✗' }}</span>
+          <span class="qa-q">{{ d.question }}</span>
+          {% if d.domain %}<span class="qa-domain">{{ d.domain }}</span>{% endif %}
+          <span class="qa-chevron">▾</span>
+        </div>
+        <div class="qa-body">
+          <div class="ans-row">
+            <span class="ans-label">Your answer:</span>
+            <span class="ans-text {{ 'correct-text' if d.is_correct else 'wrong-text' }}">{{ d.your_answer }}</span>
+          </div>
+          {% if not d.is_correct %}
+          <div class="ans-row">
+            <span class="ans-label">Correct answer:</span>
+            <span class="ans-text correct-text">{{ d.correct_answer }}</span>
+          </div>
+          {% endif %}
+          {% if d.explanation %}
+          <div class="explanation">
+            <span class="exp-label">💡 Explanation:</span> {{ d.explanation }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="results-actions">
+    <a href="{{ url_for('index') }}" class="btn-action secondary">← Home</a>
+    <a href="{{ url_for('missed') }}" class="btn-action secondary">Missed Questions</a>
+    <a href="{{ url_for('index') }}" class="btn-action primary">Try Again →</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if question else 'New' }} Question — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap form-page">
+  <h1 class="page-title">{{ 'Edit Question' if question else 'New Question' }}</h1>
+
+  <form action="" method="POST" class="q-form">
+    <div class="field">
+      <label class="field-label">Question Text *</label>
+      <textarea name="text" class="field-input" rows="3" required>{{ question.text if question else '' }}</textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Domain / Topic</label>
+      <input type="text" name="domain" class="field-input" placeholder="e.g. Hardware, Networking, Security…"
+             value="{{ question.domain if question else '' }}">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Explanation (optional)</label>
+      <textarea name="explanation" class="field-input" rows="2"
+                placeholder="Brief explanation of the correct answer…">{{ question.explanation if question else '' }}</textarea>
+    </div>
+
+    <fieldset class="choices-fieldset">
+      <legend class="field-label">Answer Choices — select the correct one</legend>
+      {% set existing = question.choices if question else [] %}
+      {% for i in range(1, 5) %}
+      {% set c = existing[i-1] if i <= existing|length else None %}
+      <div class="choice-row">
+        <input type="radio" name="correct" value="{{ i }}" id="r{{ i }}"
+               {{ 'checked' if c and c.is_correct else '' }} required>
+        <label for="r{{ i }}" class="choice-radio-label">{{ i }}</label>
+        <input type="text" name="choice_{{ i }}" class="field-input choice-input"
+               placeholder="Answer option {{ i }}…" value="{{ c.text if c else '' }}"
+               {{ 'required' if i <= 2 else '' }}>
+      </div>
+      {% endfor %}
+    </fieldset>
+
+    <div class="form-actions">
+      <a href="{{ url_for('admin') }}" class="btn-action secondary">Cancel</a>
+      <button type="submit" class="btn-action primary">{{ 'Save Changes' if question else 'Add Question' }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

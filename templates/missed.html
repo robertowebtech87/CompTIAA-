@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Missed Questions — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="missed-header">
+    <div>
+      <h1 class="page-title">Missed Questions</h1>
+      <p style="color:var(--muted);font-size:.9rem;margin-top:.25rem">
+        Questions you've gotten wrong, ranked by how often you miss them.
+      </p>
+    </div>
+    {% if missed %}
+    <form action="{{ url_for('missed_quiz') }}" method="POST">
+      <button type="submit" class="btn-add" style="background:var(--fail);border:none">
+        Quiz on These →
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if missed %}
+  <div class="missed-stats-row">
+    <div class="stat-card">
+      <span class="stat-num">{{ missed|length }}</span>
+      <span class="stat-label">Unique Missed</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" style="color:var(--fail)">{{ missed[0].wrong_pct }}%</span>
+      <span class="stat-label">Hardest Miss Rate</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num">{{ missed | selectattr('wrong_pct', 'ge', 75) | list | length }}</span>
+      <span class="stat-label">Consistently Wrong</span>
+    </div>
+  </div>
+
+  <div class="qa-list">
+    {% for q in missed %}
+    <div class="qa-item wrong">
+      <div class="qa-header" onclick="toggleQA(this)">
+        <div class="missed-rate-badge {{ 'miss-high' if q.wrong_pct >= 75 else ('miss-mid' if q.wrong_pct >= 50 else 'miss-low') }}">
+          {{ q.wrong_pct }}%
+        </div>
+        <span class="qa-q">{{ q.text }}</span>
+        {% if q.domain %}<span class="qa-domain">{{ q.domain }}</span>{% endif %}
+        <span class="qa-chevron">▾</span>
+      </div>
+      <div class="qa-body">
+        <div class="missed-attempts">
+          Wrong {{ q.total_wrong }}/{{ q.total_seen }} times attempted
+        </div>
+        <div class="ans-row">
+          <span class="ans-label">Correct answer:</span>
+          <span class="ans-text correct-text">{{ q.correct_answer }}</span>
+        </div>
+        {% if q.explanation %}
+        <div class="explanation">
+          <span class="exp-label">💡 Explanation:</span> {{ q.explanation }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="margin-top:4rem">
+    <p style="font-size:2rem;margin-bottom:1rem">🎯</p>
+    <p>No missed questions yet — take a quiz first!</p>
+    <a href="{{ url_for('index') }}" class="btn-action primary" style="display:inline-block;margin-top:1.5rem">Start a Quiz →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Study Session — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="quiz-shell" id="quiz-shell">
+  <div class="quiz-header">
+    <div class="quiz-meta">
+      <span id="q-counter" class="q-counter">1 / {{ total }}</span>
+      <span class="domain-tag" id="domain-tag"></span>
+    </div>
+    <span class="study-badge">📖 STUDY MODE</span>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+  </div>
+
+  <div class="question-area" id="question-area">
+    <div class="loading-pulse">Loading…</div>
+  </div>
+
+  <div class="study-nav">
+    <button class="btn-nav" id="btn-prev" onclick="prevCard()" disabled>← Prev</button>
+    <span class="study-progress-text" id="study-progress">0 / {{ total }} revealed</span>
+    <button class="btn-nav" id="btn-next" onclick="nextCard()">Next →</button>
+  </div>
+</div>
+
+<div class="study-done" id="study-done" style="display:none">
+  <div class="study-done-inner">
+    <div class="study-done-icon">🎓</div>
+    <h2>Session Complete!</h2>
+    <p>You reviewed all {{ total }} flashcards.</p>
+    <div class="study-done-actions">
+      <a href="{{ url_for('study') }}" class="btn-action secondary">New Session</a>
+      <a href="{{ url_for('index') }}" class="btn-action primary">Take a Quiz →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const QUESTION_IDS = {{ question_ids | tojson }};
+let currentIndex = 0;
+let revealed = new Set();
+let cache = {};
+
+document.addEventListener('DOMContentLoaded', () => loadCard(0));
+
+async function loadCard(index) {
+  currentIndex = index;
+  const qid = QUESTION_IDS[index];
+  const area = document.getElementById('question-area');
+  area.innerHTML = '<div class="loading-pulse">Loading…</div>';
+
+  if (!cache[qid]) {
+    const res = await fetch(`/api/study/question/${qid}`);
+    cache[qid] = await res.json();
+  }
+  const q = cache[qid];
+  const isRevealed = revealed.has(qid);
+
+  area.innerHTML = `
+    <p class="question-text">${q.text}</p>
+    ${isRevealed ? buildRevealedChoices(q) : `
+      <div class="flashcard-placeholder">
+        <button class="btn-reveal" onclick="revealAnswer(${qid})">Tap to Reveal Answer</button>
+      </div>
+    `}
+    ${isRevealed && q.explanation ? `
+      <div class="explanation" style="margin-top:1rem">
+        <span class="exp-label">💡 Explanation:</span> ${q.explanation}
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('q-counter').textContent = `${index + 1} / ${QUESTION_IDS.length}`;
+  document.getElementById('domain-tag').textContent = q.domain || '';
+  document.getElementById('progress-bar').style.width = `${((index + 1) / QUESTION_IDS.length) * 100}%`;
+  document.getElementById('btn-prev').disabled = index === 0;
+  document.getElementById('btn-next').textContent = index === QUESTION_IDS.length - 1 ? 'Finish →' : 'Next →';
+  document.getElementById('study-progress').textContent = `${revealed.size} / ${QUESTION_IDS.length} revealed`;
+}
+
+function buildRevealedChoices(q) {
+  const letters = ['A','B','C','D'];
+  return `<div class="choices-list revealed-choices">
+    ${q.choices.map((c, i) => `
+      <div class="choice-btn ${c.correct ? 'correct-answer' : 'wrong-answer'}">
+        <span class="choice-letter">${letters[i]}</span>
+        ${c.text}
+        ${c.correct ? '<span class="correct-mark">✓</span>' : ''}
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function revealAnswer(qid) {
+  revealed.add(qid);
+  loadCard(currentIndex);
+}
+
+function nextCard() {
+  if (currentIndex < QUESTION_IDS.length - 1) {
+    loadCard(currentIndex + 1);
+  } else {
+    document.getElementById('quiz-shell').style.display = 'none';
+    document.getElementById('study-done').style.display = 'flex';
+  }
+}
+
+function prevCard() {
+  if (currentIndex > 0) loadCard(currentIndex - 1);
+}
+</script>
+{% endblock %}

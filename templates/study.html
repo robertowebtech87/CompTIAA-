@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Study Mode — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:600px">
+  <h1 class="page-title">Study Mode</h1>
+  <p style="color:var(--muted);margin-bottom:2rem;font-size:.95rem;">
+    Flashcard-style practice. See the question, think about it, then reveal the answer — no timer, no scoring.
+  </p>
+
+  <form action="{{ url_for('start_study') }}" method="POST" class="start-form">
+    {% if domains %}
+    <div class="form-row">
+      <label class="form-label">Choose Categories</label>
+      <div class="domain-grid">
+        <label class="domain-chip all-chip selected" id="chip-all">
+          <input type="checkbox" name="domains" value="all" checked onchange="toggleAll(this)">
+          <span class="chip-icon">⬡</span>
+          All Categories
+          <span class="chip-count">{{ total }}</span>
+        </label>
+        {% for d in domains %}
+        <label class="domain-chip" id="chip-{{ loop.index }}">
+          <input type="checkbox" name="domains" value="{{ d.name }}" onchange="toggleDomain(this)">
+          <span class="chip-dot"></span>
+          {{ d.name }}
+          <span class="chip-count">{{ d.count }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <button type="submit" class="btn-start" style="background:var(--accent2);color:#0d0f14">
+      Start Flashcards →
+    </button>
+  </form>
+</div>
+
+<script>
+function toggleAll(cb) {
+  const domainCbs = document.querySelectorAll('input[name="domains"]:not([value="all"])');
+  const allChip = document.getElementById('chip-all');
+  if (cb.checked) {
+    domainCbs.forEach(c => { c.checked = false; c.closest('.domain-chip').classList.remove('selected'); });
+    allChip.classList.add('selected');
+  } else { cb.checked = true; }
+}
+function toggleDomain(cb) {
+  const allCb = document.querySelector('input[value="all"]');
+  const allChip = document.getElementById('chip-all');
+  const chip = cb.closest('.domain-chip');
+  if (cb.checked) {
+    allCb.checked = false; allChip.classList.remove('selected'); chip.classList.add('selected');
+  } else {
+    chip.classList.remove('selected');
+    const anySelected = document.querySelectorAll('input[name="domains"]:not([value="all"]):checked').length > 0;
+    if (!anySelected) { allCb.checked = true; allChip.classList.add('selected'); }
+  }
+}
+</script>
+{% endblock %}

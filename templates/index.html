@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}CompTIA A+ Prep — Home{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-content">
+    <div class="badge">CompTIA A+ Core 1 &amp; Core 2</div>
+    <h1 class="hero-title">Master the<br><span class="accent">A+ Exam.</span></h1>
+    <p class="hero-sub">Practice with your own question bank. Track progress. Pass with confidence.</p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-num">{{ total_questions }}</span>
+        <span class="stat-label">Questions</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ total_attempts }}</span>
+        <span class="stat-label">Attempts</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ best_score }}%</span>
+        <span class="stat-label">Best Score</span>
+      </div>
+    </div>
+
+    <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
+
+      {% if domains %}
+      <div class="form-row">
+        <label class="form-label">Categories</label>
+        <div class="domain-grid">
+          <label class="domain-chip all-chip selected" id="chip-all">
+            <input type="checkbox" name="domains" value="all" checked onchange="toggleAll(this)">
+            <span class="chip-icon">⬡</span>
+            All Categories
+            <span class="chip-count">{{ total_questions }}</span>
+          </label>
+          {% for d in domains %}
+          <label class="domain-chip" id="chip-{{ loop.index }}">
+            <input type="checkbox" name="domains" value="{{ d.name }}" onchange="toggleDomain(this)">
+            <span class="chip-dot"></span>
+            {{ d.name }}
+            <span class="chip-count">{{ d.count }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="form-row">
+        <label class="form-label">Number of questions</label>
+        <div class="slider-wrap">
+          <input type="range" id="num_q" name="num_questions" min="5" max="{{ [total_questions, 90]|min }}"
+                 value="20" oninput="document.getElementById('qval').textContent=this.value">
+          <span class="slider-val" id="qval">20</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-start" {% if total_questions == 0 %}disabled{% endif %}>
+        {% if total_questions == 0 %}Add Questions First →{% else %}Start Quiz →{% endif %}
+      </button>
+      {% if total_questions == 0 %}
+        <a href="{{ url_for('admin') }}" class="hint-link">Go to Admin to add your questions</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if recent %}
+<section class="recent-section">
+  <h2 class="section-title">Recent Attempts</h2>
+  <div class="attempts-list">
+    {% for a in recent %}
+    <a href="{{ url_for('results', attempt_id=a.id) }}" class="attempt-row">
+      <span class="attempt-date">{{ a.created_at.strftime('%d %b %Y  %H:%M') }}</span>
+      <span class="attempt-score">{{ a.correct_answers }}/{{ a.total_questions }}</span>
+      <span class="attempt-scaled">{{ a.scaled_score }}/900</span>
+      <span class="attempt-badge {{ 'pass' if a.passed else 'fail' }}">{{ 'PASS' if a.passed else 'FAIL' }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<script>
+function toggleAll(cb) {
+  const domainCbs = document.querySelectorAll('input[name="domains"]:not([value="all"])');
+  const allChip = document.getElementById('chip-all');
+  if (cb.checked) {
+    domainCbs.forEach(c => { c.checked = false; c.closest('.domain-chip').classList.remove('selected'); });
+    allChip.classList.add('selected');
+  } else {
+    cb.checked = true;
+  }
+  updateSliderMax();
+}
+
+function toggleDomain(cb) {
+  const allCb = document.querySelector('input[value="all"]');
+  const allChip = document.getElementById('chip-all');
+  const chip = cb.closest('.domain-chip');
+  if (cb.checked) {
+    allCb.checked = false;
+    allChip.classList.remove('selected');
+    chip.classList.add('selected');
+  } else {
+    chip.classList.remove('selected');
+    const anySelected = document.querySelectorAll('input[name="domains"]:not([value="all"]):checked').length > 0;
+    if (!anySelected) { allCb.checked = true; allChip.classList.add('selected'); }
+  }
+  updateSliderMax();
+}
+
+function updateSliderMax() {
+  const allCb = document.querySelector('input[value="all"]');
+  const slider = document.getElementById('num_q');
+  const qval = document.getElementById('qval');
+  let total = {{ total_questions }};
+  if (!allCb.checked) {
+    const domainCounts = { {% for d in domains %}"{{ d.name }}": {{ d.count }},{% endfor %} };
+    const selected = document.querySelectorAll('input[name="domains"]:not([value="all"]):checked');
+    total = 0;
+    selected.forEach(cb => { total += domainCounts[cb.value] || 0; });
+  }
+  const maxQ = Math.min(total, 90);
+  slider.max = maxQ;
+  if (parseInt(slider.value) > maxQ) { slider.value = maxQ; qval.textContent = maxQ; }
+}
+</script>
+{% endblock %}

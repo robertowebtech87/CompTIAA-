@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Admin — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="admin-header">
+    <h1 class="page-title">Question Bank</h1>
+    <a href="{{ url_for('new_question') }}" class="btn-add">+ Add Question</a>
+  </div>
+
+  {% if questions %}
+  <div class="admin-stats">
+    <span>Total: <strong>{{ questions|length }}</strong></span>
+    <span>Active: <strong>{{ questions|selectattr('active')|list|length }}</strong></span>
+    <span>Inactive: <strong>{{ questions|rejectattr('active')|list|length }}</strong></span>
+  </div>
+
+  <div class="admin-list">
+    {% for q in questions %}
+    <div class="admin-item {{ '' if q.active else 'inactive' }}" id="qrow-{{ q.id }}">
+      <div class="admin-item-top">
+        <span class="admin-domain">{{ q.domain or 'No Domain' }}</span>
+        <span class="admin-status {{ 'active' if q.active else 'off' }}" id="status-{{ q.id }}">
+          {{ 'Active' if q.active else 'Inactive' }}
+        </span>
+      </div>
+      <p class="admin-qtext">{{ q.text }}</p>
+      <div class="admin-choices">
+        {% for c in q.choices %}
+        <span class="choice-chip {{ 'correct-chip' if c.is_correct else '' }}">{{ c.text }}</span>
+        {% endfor %}
+      </div>
+      <div class="admin-actions">
+        <a href="{{ url_for('edit_question', qid=q.id) }}" class="btn-sm edit">Edit</a>
+        <button class="btn-sm toggle" onclick="toggleQ({{ q.id }})">
+          {{ 'Deactivate' if q.active else 'Activate' }}
+        </button>
+        <form action="{{ url_for('delete_question', qid=q.id) }}" method="POST" style="display:inline"
+              onsubmit="return confirm('Delete this question?')">
+          <button class="btn-sm delete" type="submit">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No questions yet. <a href="{{ url_for('new_question') }}">Add your first question!</a></p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

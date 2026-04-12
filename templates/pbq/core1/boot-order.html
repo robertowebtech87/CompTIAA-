@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Cable Identification Lab — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+
+  <div class="lab-breadcrumb">
+    <a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / Cable Identification
+  </div>
+
+  <h1 class="page-title">Lab: Cable Identification</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Match each cable or connector on the left to its correct description on the right.
+    Drag each item or use the dropdowns to make your selections.
+  </p>
+
+  <div class="cable-lab">
+    <div class="cable-columns">
+      <div class="cable-col">
+        <div class="cable-col-header">Cable / Connector</div>
+        {% set cables = [
+          ('RJ45', 'rj45'),
+          ('RJ11', 'rj11'),
+          ('HDMI', 'hdmi'),
+          ('DisplayPort', 'dp'),
+          ('USB-C', 'usbc'),
+          ('SATA Data Cable', 'sata'),
+          ('Molex Connector', 'molex'),
+          ('Coaxial (F-Type)', 'coax'),
+        ] %}
+        {% for name, cid in cables %}
+        <div class="cable-item" id="cable-{{ cid }}">
+          <span class="cable-icon">{{ '🔌' if 'Molex' in name or 'SATA' in name else ('📺' if 'HDMI' in name or 'Display' in name else ('🔗' if 'USB' in name else '🔌')) }}</span>
+          <span class="cable-name">{{ name }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="cable-col">
+        <div class="cable-col-header">Select the correct cable for each use</div>
+        {% set scenarios = [
+          ('Connect a computer to an Ethernet network switch', 'rj45'),
+          ('Connect a telephone handset to a wall jack', 'rj11'),
+          ('Connect a laptop to an HD television for video output', 'hdmi'),
+          ('Connect a monitor supporting 4K at 144Hz for gaming', 'dp'),
+          ('Connect a modern smartphone to charge and transfer data', 'usbc'),
+          ('Connect a hard drive to a motherboard for data transfer', 'sata'),
+          ('Provide power from PSU to older IDE drives and fans', 'molex'),
+          ('Connect a cable TV signal to a tuner or cable modem', 'coax'),
+        ] %}
+        {% for scenario, answer in scenarios %}
+        <div class="cable-scenario" data-answer="{{ answer }}">
+          <p class="scenario-text">{{ scenario }}</p>
+          <select class="cable-select" onchange="checkSelect(this)">
+            <option value="">— Select cable —</option>
+            <option value="rj45">RJ45</option>
+            <option value="rj11">RJ11</option>
+            <option value="hdmi">HDMI</option>
+            <option value="dp">DisplayPort</option>
+            <option value="usbc">USB-C</option>
+            <option value="sata">SATA Data Cable</option>
+            <option value="molex">Molex Connector</option>
+            <option value="coax">Coaxial (F-Type)</option>
+          </select>
+          <span class="cable-feedback" id="fb-{{ loop.index }}"></span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="lab-actions">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function checkSelect(sel) {
+  // Live feedback as user selects
+  const scenario = sel.closest('.cable-scenario');
+  const answer = scenario.dataset.answer;
+  const fb = scenario.querySelector('.cable-feedback');
+  if (!sel.value) { fb.textContent = ''; fb.className = 'cable-feedback'; return; }
+  if (sel.value === answer) {
+    fb.textContent = '✓';
+    fb.className = 'cable-feedback correct-text';
+  } else {
+    fb.textContent = '✗';
+    fb.className = 'cable-feedback wrong-text';
+  }
+}
+
+function submitLab() {
+  const scenarios = document.querySelectorAll('.cable-scenario');
+  let correct = 0;
+  let feedback = [];
+
+  const names = {
+    rj45: 'RJ45', rj11: 'RJ11', hdmi: 'HDMI', dp: 'DisplayPort',
+    usbc: 'USB-C', sata: 'SATA Data Cable', molex: 'Molex Connector', coax: 'Coaxial (F-Type)'
+  };
+
+  scenarios.forEach((s, i) => {
+    const answer = s.dataset.answer;
+    const selected = s.querySelector('select').value;
+    const text = s.querySelector('.scenario-text').textContent.trim();
+    if (selected === answer) {
+      correct++;
+      feedback.push({ok: true, msg: `✓ "${text.substring(0,50)}…" → ${names[answer]}`});
+    } else {
+      feedback.push({ok: false, msg: `✗ "${text.substring(0,50)}…" → You selected: ${names[selected] || 'nothing'} | Correct: ${names[answer]}`});
+    }
+  });
+
+  const total = scenarios.length;
+  const passed = correct === total;
+  const pct = Math.round(correct / total * 100);
+
+  const resultEl = document.getElementById('lab-result');
+  document.getElementById('result-content').innerHTML = `
+    <div class="lab-result-header ${passed ? 'pass' : (pct >= 75 ? 'partial' : 'fail')}">
+      ${passed ? '✓ Perfect Score!' : `${correct}/${total} correct (${pct}%)`}
+    </div>
+    <div class="lab-feedback-list">
+      ${feedback.map(f => `<div class="lab-feedback-item ${f.ok ? 'ok' : 'wrong'}">${f.msg}</div>`).join('')}
+    </div>
+    ${passed ? '<div class="lab-explanation">Excellent! You correctly identified all cable types. Remember: RJ45=Ethernet, RJ11=Phone, HDMI/DP=Video, USB-C=Modern devices, SATA=Storage, Molex=Legacy power, Coax=Cable TV.</div>' : ''}
+  `;
+  resultEl.style.display = 'block';
+  resultEl.scrollIntoView({behavior:'smooth'});
+}
+
+function resetLab() {
+  document.querySelectorAll('.cable-select').forEach(s => s.value = '');
+  document.querySelectorAll('.cable-feedback').forEach(f => { f.textContent = ''; f.className = 'cable-feedback'; });
+  document.getElementById('lab-result').style.display = 'none';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+</script>
+{% endblock %}

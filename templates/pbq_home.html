@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Practice Labs — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap">
+
+  <div class="pbq-header">
+    <div>
+      <h1 class="page-title">Practice Labs</h1>
+      <p style="color:var(--muted);font-size:.95rem;margin-top:.25rem">
+        Interactive simulations that mirror real CompTIA A+ Performance-Based Questions.
+      </p>
+    </div>
+  </div>
+
+  <!-- Exam Tabs -->
+  <div class="exam-tabs" style="max-width:400px;margin-bottom:2rem">
+    <button class="exam-tab {% if exam == 'core1' %}active{% endif %}"
+            onclick="window.location='{{ url_for('pbq', exam='core1') }}'">
+      <span class="exam-tab-title">Core 1</span>
+      <span class="exam-tab-sub">220-1101 · {{ labs.core1|length }} labs</span>
+    </button>
+    <button class="exam-tab {% if exam == 'core2' %}active{% endif %}"
+            onclick="window.location='{{ url_for('pbq', exam='core2') }}'">
+      <span class="exam-tab-title">Core 2</span>
+      <span class="exam-tab-sub">220-1102 · {{ labs.core2|length }} labs</span>
+    </button>
+  </div>
+
+  <div class="labs-grid">
+    {% for lab in labs[exam] %}
+    <a href="{{ url_for('pbq_lab', exam=exam, lab_id=lab.id) }}" class="lab-card">
+      <div class="lab-card-top">
+        <span class="lab-difficulty {{ lab.difficulty|lower }}">{{ lab.difficulty }}</span>
+        <span class="lab-time">⏱ {{ lab.time }} min</span>
+      </div>
+      <h3 class="lab-title">{{ lab.title }}</h3>
+      <p class="lab-desc">{{ lab.desc }}</p>
+      <div class="lab-cta">Start Lab →</div>
+    </a>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

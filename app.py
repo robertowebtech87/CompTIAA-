@@ -375,6 +375,44 @@ def toggle_question(qid):
     db.session.commit()
     return jsonify({'active': q.active})
 
+
+# ── PBQ Labs ──────────────────────────────────────────────────────────────────
+
+LABS = {
+    'core1': [
+        {'id': 'ip-config',        'title': 'IP Configuration',        'desc': 'Configure IP address, subnet mask and default gateway like a real Windows network dialog.', 'time': 8,  'difficulty': 'Medium'},
+        {'id': 'cable-id',         'title': 'Cable Identification',     'desc': 'Match the correct cables and connectors to their ports on a PC back panel.', 'time': 6,  'difficulty': 'Easy'},
+        {'id': 'boot-order',       'title': 'BIOS Boot Order',          'desc': 'Set the correct boot sequence in a simulated BIOS to boot from the right device.', 'time': 5,  'difficulty': 'Easy'},
+        {'id': 'soho-network',     'title': 'SOHO Network Setup',       'desc': 'Connect and configure devices in a small office/home office network diagram.', 'time': 10, 'difficulty': 'Hard'},
+        {'id': 'component-match',  'title': 'Component Matching',       'desc': 'Identify and match hardware components to their correct slots on a motherboard.', 'time': 7,  'difficulty': 'Medium'},
+        {'id': 'printer-trouble',  'title': 'Printer Troubleshooting',  'desc': 'Diagnose and resolve common printer issues from a set of reported symptoms.', 'time': 8,  'difficulty': 'Medium'},
+        {'id': 'ram-install',      'title': 'RAM Installation',         'desc': 'Select and install the correct RAM for a given system specification.', 'time': 6,  'difficulty': 'Easy'},
+        {'id': 'display-trouble',  'title': 'Display Troubleshooting',  'desc': 'Identify the cause of display issues from symptoms and select the correct fix.', 'time': 7,  'difficulty': 'Medium'},
+    ],
+    'core2': [
+        {'id': 'win-network',      'title': 'Windows Network Settings', 'desc': 'Fix a broken network configuration in a simulated Windows Settings interface.', 'time': 8,  'difficulty': 'Medium'},
+        {'id': 'permissions',      'title': 'User Permissions',         'desc': 'Set the correct NTFS file permissions for users based on a given scenario.', 'time': 9,  'difficulty': 'Hard'},
+        {'id': 'malware-removal',  'title': 'Malware Removal Steps',    'desc': 'Order the correct steps for removing malware from an infected system.', 'time': 7,  'difficulty': 'Medium'},
+        {'id': 'backup-config',    'title': 'Backup Configuration',     'desc': 'Configure the correct backup strategy for a given business requirement.', 'time': 6,  'difficulty': 'Medium'},
+        {'id': 'sim-terminal',     'title': 'Simulated Terminal',       'desc': 'Use ping, ipconfig, and tracert in a simulated command prompt to diagnose issues.', 'time': 10, 'difficulty': 'Hard'},
+        {'id': 'security-config',  'title': 'Security Settings',        'desc': 'Configure Windows Defender and Firewall settings for a given security scenario.', 'time': 8,  'difficulty': 'Hard'},
+        {'id': 'win-trouble',      'title': 'Windows Troubleshooting',  'desc': 'Click through a Windows problem scenario selecting the correct diagnostic steps.', 'time': 9,  'difficulty': 'Hard'},
+    ]
+}
+
+@app.route('/pbq')
+def pbq():
+    exam = request.args.get('exam', 'core1')
+    return render_template('pbq_home.html', labs=LABS, exam=exam)
+
+@app.route('/pbq/<exam>/<lab_id>')
+def pbq_lab(exam, lab_id):
+    lab_list = LABS.get(exam, [])
+    lab = next((l for l in lab_list if l['id'] == lab_id), None)
+    if not lab:
+        return redirect(url_for('pbq', exam=exam))
+    return render_template(f'pbq/{exam}/{lab_id}.html', lab=lab, exam=exam)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

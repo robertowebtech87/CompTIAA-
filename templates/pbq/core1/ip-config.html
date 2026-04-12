@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}IP Configuration Lab — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:780px">
+
+  <div class="lab-breadcrumb">
+    <a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / IP Configuration
+  </div>
+
+  <div class="lab-intro">
+    <h1 class="page-title">Lab: IP Configuration</h1>
+    <p style="color:var(--muted);margin-bottom:1.5rem">
+      A user in a small office reports they cannot access the internet or any network resources.
+      Their computer is set to use a static IP address. Configure the correct network settings
+      based on the information provided below.
+    </p>
+    <div class="lab-info-box">
+      <div class="lab-info-row"><span class="lab-info-label">Network:</span> <span>192.168.10.0/24</span></div>
+      <div class="lab-info-row"><span class="lab-info-label">Available IP:</span> <span>192.168.10.45</span></div>
+      <div class="lab-info-row"><span class="lab-info-label">Router IP:</span> <span>192.168.10.1</span></div>
+      <div class="lab-info-row"><span class="lab-info-label">DNS Server:</span> <span>8.8.8.8</span></div>
+      <div class="lab-info-row"><span class="lab-info-label">Subnet:</span> <span>Class C network</span></div>
+    </div>
+  </div>
+
+  <!-- Simulated Windows Network Dialog -->
+  <div class="win-dialog">
+    <div class="win-titlebar">
+      <span class="win-icon">🌐</span>
+      <span>Internet Protocol Version 4 (TCP/IPv4) Properties</span>
+      <button class="win-close" onclick="resetForm()">✕</button>
+    </div>
+    <div class="win-body">
+      <p class="win-desc">You can get IP settings assigned automatically if your network supports
+      this capability. Otherwise, you need to ask your network administrator for the appropriate settings.</p>
+
+      <div class="win-radio-group">
+        <label class="win-radio">
+          <input type="radio" name="ip_mode" value="auto" onchange="toggleMode(false)"> Obtain an IP address automatically
+        </label>
+        <label class="win-radio">
+          <input type="radio" name="ip_mode" value="static" checked onchange="toggleMode(true)"> Use the following IP address:
+        </label>
+      </div>
+
+      <div class="win-fields" id="static-fields">
+        <div class="win-field-row">
+          <label class="win-label">IP address:</label>
+          <input type="text" class="win-input" id="ip-address" placeholder="e.g. 192.168.1.1" maxlength="15">
+        </div>
+        <div class="win-field-row">
+          <label class="win-label">Subnet mask:</label>
+          <input type="text" class="win-input" id="subnet-mask" placeholder="e.g. 255.255.255.0" maxlength="15">
+        </div>
+        <div class="win-field-row">
+          <label class="win-label">Default gateway:</label>
+          <input type="text" class="win-input" id="gateway" placeholder="e.g. 192.168.1.1" maxlength="15">
+        </div>
+      </div>
+
+      <div class="win-radio-group" style="margin-top:1rem">
+        <label class="win-radio">
+          <input type="radio" name="dns_mode" value="auto" onchange="toggleDNS(false)"> Obtain DNS server address automatically
+        </label>
+        <label class="win-radio">
+          <input type="radio" name="dns_mode" value="static" checked onchange="toggleDNS(true)"> Use the following DNS server addresses:
+        </label>
+      </div>
+
+      <div class="win-fields" id="dns-fields">
+        <div class="win-field-row">
+          <label class="win-label">Preferred DNS server:</label>
+          <input type="text" class="win-input" id="dns-primary" placeholder="e.g. 8.8.8.8" maxlength="15">
+        </div>
+        <div class="win-field-row">
+          <label class="win-label">Alternate DNS server:</label>
+          <input type="text" class="win-input" id="dns-secondary" placeholder="Optional" maxlength="15">
+        </div>
+      </div>
+
+      <div class="win-buttons">
+        <button class="win-btn secondary" onclick="resetForm()">Cancel</button>
+        <button class="win-btn primary" onclick="checkAnswers()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result panel -->
+  <div class="lab-result" id="lab-result" style="display:none">
+    <div id="result-content"></div>
+    <button class="btn-action secondary" onclick="resetForm()" style="margin-top:1rem">Try Again</button>
+    <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary" style="margin-top:1rem">Back to Labs</a>
+  </div>
+
+</div>
+
+<script>
+const CORRECT = {
+  ip: '192.168.10.45',
+  subnet: '255.255.255.0',
+  gateway: '192.168.10.1',
+  dns: '8.8.8.8'
+};
+
+function toggleMode(isStatic) {
+  document.getElementById('static-fields').style.opacity = isStatic ? '1' : '0.4';
+  document.querySelectorAll('#static-fields input').forEach(i => i.disabled = !isStatic);
+}
+
+function toggleDNS(isStatic) {
+  document.getElementById('dns-fields').style.opacity = isStatic ? '1' : '0.4';
+  document.querySelectorAll('#dns-fields input').forEach(i => i.disabled = !isStatic);
+}
+
+function checkAnswers() {
+  const ip     = document.getElementById('ip-address').value.trim();
+  const subnet = document.getElementById('subnet-mask').value.trim();
+  const gw     = document.getElementById('gateway').value.trim();
+  const dns    = document.getElementById('dns-primary').value.trim();
+  const mode   = document.querySelector('input[name="ip_mode"]:checked').value;
+
+  let score = 0;
+  let feedback = [];
+
+  if (mode === 'static') {
+    if (ip === CORRECT.ip)         { score++; feedback.push({ok:true,  msg:`✓ IP address: ${ip} — Correct`}); }
+    else                            { feedback.push({ok:false, msg:`✗ IP address: "${ip}" — Expected ${CORRECT.ip}`}); }
+
+    if (subnet === CORRECT.subnet) { score++; feedback.push({ok:true,  msg:`✓ Subnet mask: ${subnet} — Correct`}); }
+    else                            { feedback.push({ok:false, msg:`✗ Subnet mask: "${subnet}" — A Class C network uses 255.255.255.0`}); }
+
+    if (gw === CORRECT.gateway)    { score++; feedback.push({ok:true,  msg:`✓ Default gateway: ${gw} — Correct`}); }
+    else                            { feedback.push({ok:false, msg:`✗ Default gateway: "${gw}" — The router IP is the gateway: ${CORRECT.gateway}`}); }
+
+    if (dns === CORRECT.dns)       { score++; feedback.push({ok:true,  msg:`✓ DNS server: ${dns} — Correct`}); }
+    else                            { feedback.push({ok:false, msg:`✗ DNS server: "${dns}" — Expected ${CORRECT.dns}`}); }
+  } else {
+    feedback.push({ok:false, msg:'✗ The scenario requires a static IP address, not automatic (DHCP)'});
+  }
+
+  const passed = score === 4;
+  const resultEl = document.getElementById('lab-result');
+  const contentEl = document.getElementById('result-content');
+
+  contentEl.innerHTML = `
+    <div class="lab-result-header ${passed ? 'pass' : 'fail'}">
+      ${passed ? '✓ Lab Complete!' : `✗ ${score}/4 correct — Review and try again`}
+    </div>
+    <div class="lab-feedback-list">
+      ${feedback.map(f => `<div class="lab-feedback-item ${f.ok ? 'ok' : 'wrong'}">${f.msg}</div>`).join('')}
+    </div>
+    ${passed ? '<div class="lab-explanation">Well done! You correctly configured a static IP on a Class C (255.255.255.0) network with the router as the default gateway.</div>' : ''}
+  `;
+
+  resultEl.style.display = 'block';
+  resultEl.scrollIntoView({behavior: 'smooth'});
+}
+
+function resetForm() {
+  ['ip-address','subnet-mask','gateway','dns-primary','dns-secondary'].forEach(id => {
+    document.getElementById(id).value = '';
+    document.getElementById(id).disabled = false;
+  });
+  document.getElementById('lab-result').style.display = 'none';
+  document.getElementById('static-fields').style.opacity = '1';
+  document.getElementById('dns-fields').style.opacity = '1';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+</script>
+{% endblock %}

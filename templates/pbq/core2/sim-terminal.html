@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Simulated Terminal Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:780px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core2') }}">← Labs</a> / Simulated Terminal</div>
+  <h1 class="page-title">Lab: Simulated Terminal</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Use the simulated Windows Command Prompt below to diagnose a network connectivity issue.
+    Type commands and press Enter — the terminal will respond like a real Windows system.
+  </p>
+  <div class="lab-info-box" style="margin-bottom:1.5rem">
+    <div class="lab-info-row"><span class="lab-info-label">Problem:</span><span>User cannot reach the internet or internal servers</span></div>
+    <div class="lab-info-row"><span class="lab-info-label">Your goal:</span><span>Run the correct commands to diagnose where the connection breaks</span></div>
+    <div class="lab-info-row"><span class="lab-info-label">Hint:</span><span>Try: ipconfig, ping 127.0.0.1, ping 192.168.1.1, ping 8.8.8.8, nslookup, tracert</span></div>
+  </div>
+
+  <!-- Simulated terminal -->
+  <div class="bios-shell" style="min-height:320px">
+    <div class="bios-titlebar" style="background:#0078d4">C:\Windows\System32\cmd.exe</div>
+    <div class="bios-body" style="padding:.75rem 1rem;font-family:var(--font-mono);font-size:.82rem">
+      <div id="terminal-output" style="color:#ccffcc;line-height:1.6;white-space:pre-wrap;margin-bottom:.5rem">Microsoft Windows [Version 10.0.19045]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Users\User></div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span style="color:#ccffcc">C:\Users\User></span>
+        <input type="text" id="cmd-input" style="flex:1;background:transparent;border:none;color:#ccffcc;font-family:var(--font-mono);font-size:.82rem;outline:none;caret-color:#ccffcc"
+               placeholder="type a command..." onkeydown="handleCmd(event)" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:1rem;margin-bottom:1.5rem">
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:.75rem">Based on the terminal output, answer these diagnostic questions:</p>
+
+    {% set questions = [
+      ('After running ipconfig, the IP address shown is 169.254.12.45. What does this indicate?',
+       'APIPA address — the computer could not reach the DHCP server',
+       ['Valid static IP — network is configured correctly','APIPA address — the computer could not reach the DHCP server','IPv6 address in disguise','The computer has no network adapter']),
+      ('ping 127.0.0.1 succeeds. What does this confirm?',
+       'The local TCP/IP stack is functioning correctly on this computer',
+       ['The internet connection is working','The router is reachable','The local TCP/IP stack is functioning correctly on this computer','DNS is working']),
+      ('ping 192.168.1.1 (default gateway) fails with "Request timed out". What does this suggest?',
+       'The computer cannot reach the router — likely a physical connection or IP config issue',
+       ['The internet is down','DNS server is not responding','The computer cannot reach the router — likely a physical connection or IP config issue','The firewall is blocking all traffic']),
+      ('nslookup google.com returns "DNS request timed out". What is the problem?',
+       'DNS resolution is failing — the DNS server is unreachable or misconfigured',
+       ['Google is down','DNS resolution is failing — the DNS server is unreachable or misconfigured','The browser needs to be reinstalled','The network cable is unplugged']),
+      ('tracert 8.8.8.8 shows packets reaching the router but stopping at the next hop. Where is the problem?',
+       'Beyond the local router — likely an ISP issue or WAN connection problem',
+       ['On the local computer','On the local network switch','Beyond the local router — likely an ISP issue or WAN connection problem','On the DNS server']),
+    ] %}
+
+    <div class="cable-lab">
+      {% for question, answer, options in questions %}
+      <div class="cable-scenario" data-answer="{{ answer }}">
+        <p class="scenario-text"><strong>Q{{ loop.index }}:</strong> {{ question }}</p>
+        <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:560px">
+          <option value="">— Select answer —</option>
+          {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        </select>
+        <span class="cable-feedback"></span>
+      </div>
+      {% endfor %}
+      <div class="lab-actions" style="margin-top:1rem">
+        <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+        <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+      </div>
+      <div class="lab-result" id="lab-result" style="display:none">
+        <div id="result-content"></div>
+        <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+          <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+          <a href="{{ url_for('pbq', exam='core2') }}" class="btn-action primary">Back to Labs</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Simulated terminal responses
+const responses = {
+  'ipconfig': `Windows IP Configuration\n\nEthernet adapter Local Area Connection:\n   Connection-specific DNS Suffix: \n   IPv4 Address. . . . . . . . . : 169.254.12.45\n   Subnet Mask . . . . . . . . . : 255.255.0.0\n   Default Gateway . . . . . . . :`,
+  'ipconfig /all': `Windows IP Configuration\n   Host Name: DESKTOP-USER\n   DHCP Enabled: Yes\n   Autoconfiguration Enabled: Yes\n\nEthernet adapter Local Area Connection:\n   IPv4 Address: 169.254.12.45 (APIPA)\n   Subnet Mask: 255.255.0.0\n   Default Gateway: (blank)\n   DHCP Server: Could not contact DHCP server`,
+  'ping 127.0.0.1': `Pinging 127.0.0.1 with 32 bytes of data:\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\n\nPing statistics for 127.0.0.1:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)`,
+  'ping 192.168.1.1': `Pinging 192.168.1.1 with 32 bytes of data:\nRequest timed out.\nRequest timed out.\nRequest timed out.\nRequest timed out.\n\nPing statistics for 192.168.1.1:\n    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)`,
+  'ping 8.8.8.8': `Pinging 8.8.8.8 with 32 bytes of data:\nRequest timed out.\nRequest timed out.\n\nPing statistics for 8.8.8.8:\n    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)`,
+  'ping google.com': `Ping request could not find host google.com.\nPlease check the name and try again.`,
+  'nslookup': `Default Server:  UnKnown\nAddress:  (blank)\n\n> `,
+  'nslookup google.com': `DNS request timed out.\n    timeout was 2 seconds.\nServer:  UnKnown\nAddress:  (blank)\n\nDNS request timed out.\n    timeout was 2 seconds.\n*** UnKnown can\'t find google.com: Timed out`,
+  'tracert 8.8.8.8': `Tracing route to 8.8.8.8 over a maximum of 30 hops:\n  1    *        *        *     Request timed out.\n  2    *        *        *     Request timed out.\n\nTrace complete.`,
+  'tracert google.com': `Unable to resolve target system name google.com.`,
+  'netstat': `Active Connections\n  Proto  Local Address    Foreign Address   State\n  TCP    127.0.0.1:1234   127.0.0.1:5678    ESTABLISHED`,
+  'cls': '__clear__',
+  'help': `For more information on a specific command, type HELP command-name\nIPCONFIG   Display all current TCP/IP network configuration values\nPING       Test network connectivity to a host\nTRACERT    Trace route to a remote host\nNSLOOKUP   Display DNS information\nNETSTAT    Display active connections`,
+};
+
+function handleCmd(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('cmd-input');
+  const cmd = input.value.trim().toLowerCase();
+  const output = document.getElementById('terminal-output');
+  if (!cmd) return;
+  const response = responses[cmd] || `'${cmd}' is not recognized as an internal or external command,\noperable program or batch file.`;
+  if (response === '__clear__') {
+    output.textContent = 'C:\\Users\\User>';
+  } else {
+    output.textContent += cmd + '\n' + response + '\n\nC:\\Users\\User>';
+  }
+  input.value = '';
+  output.scrollTop = output.scrollHeight;
+}
+
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Q${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-1?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+
+// Focus input on click
+document.querySelector('.bios-shell').addEventListener('click', () => {
+  document.getElementById('cmd-input').focus();
+});
+</script>
+{% endblock %}

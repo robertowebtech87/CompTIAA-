@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Backup Configuration Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core2') }}">← Labs</a> / Backup Configuration</div>
+  <h1 class="page-title">Lab: Backup Configuration</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Select the correct backup strategy and settings for each business scenario.
+  </p>
+  <div class="cable-lab">
+    {% set questions = [
+      ('A small business wants to follow best practice for data protection. How many copies of data should they maintain and where?',
+       '3 copies — 2 on different local media types and 1 offsite (the 3-2-1 rule)',
+       ['1 copy on an external drive','2 copies on the same NAS device','3 copies — 2 on different local media types and 1 offsite (the 3-2-1 rule)','1 cloud backup is sufficient']),
+      ('A company needs the fastest possible restore time and can afford the storage. Which backup type should they use daily?',
+       'Full backup — contains everything needed for a complete restore in one step',
+       ['Incremental backup','Differential backup','Full backup — contains everything needed for a complete restore in one step','Synthetic backup']),
+      ('Storage space is limited. The company does a full backup on Sunday and wants to minimize daily backup size Monday through Saturday. Which type should they use?',
+       'Incremental — only backs up data changed since the last backup (smallest size)',
+       ['Full backup daily','Differential — backs up all changes since last full','Incremental — only backs up data changed since the last backup (smallest size)','Mirror backup']),
+      ('A company does a full backup Sunday. Monday is incremental, Tuesday is incremental. The server crashes Wednesday. How many backup sets are needed to restore?',
+       '3 sets — Sunday full, Monday incremental, and Tuesday incremental',
+       ['1 set — just Sundays full backup','2 sets — Sunday full and Tuesday incremental only','3 sets — Sunday full, Monday incremental, and Tuesday incremental','Only the most recent backup is needed']),
+      ('After completing a backup what additional step is critical to verify the backup is usable?',
+       'Test the restore process to verify data can actually be recovered',
+       ['Create a second backup immediately','Test the restore process to verify data can actually be recovered','Email the backup log to management','Delete the previous backup to save space']),
+      ('A user accidentally deletes an important file. The most recent backup is from last night. What type of restore should be performed?',
+       'Granular/file-level restore — restore only the deleted file from last night\'s backup',
+       ['Full bare-metal restore of the entire system','Reinstall the operating system','Granular/file-level restore — restore only the deleted file from last night\'s backup','Perform a System Restore']),
+      ('What does RPO (Recovery Point Objective) define?',
+       'The maximum acceptable amount of data loss measured in time — how old can the restored data be',
+       ['How fast the system must be restored after a failure','The maximum acceptable amount of data loss measured in time — how old can the restored data be','The physical location where backups are stored','The minimum backup storage capacity required']),
+    ] %}
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Scenario {{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:580px">
+        <option value="">— Select answer —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core2') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Scenario ${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-1?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

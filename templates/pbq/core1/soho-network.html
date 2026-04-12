@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}SOHO Network Setup Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / SOHO Network Setup</div>
+  <h1 class="page-title">Lab: SOHO Network Setup</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    A small office needs to be networked. For each device or connection below, select the correct
+    component or setting needed to complete the network setup.
+  </p>
+
+  <div class="cable-lab">
+    <div class="lab-info-box" style="margin-bottom:1.5rem">
+      <div class="lab-info-row"><span class="lab-info-label">Scenario:</span><span>5 wired PCs, Wi-Fi for laptops, shared internet via ISP modem, shared printer</span></div>
+      <div class="lab-info-row"><span class="lab-info-label">Network:</span><span>192.168.1.0/24, DHCP enabled</span></div>
+    </div>
+
+    {% set questions = [
+      ('What device connects the office network to the ISP internet connection?', 'Router', ['Hub', 'Router', 'Switch', 'Access Point']),
+      ('What device should be used to connect the 5 wired PCs together on the same network?', 'Switch', ['Router', 'Switch', 'Modem', 'Repeater']),
+      ('What provides wireless connectivity for the laptops?', 'Wireless Access Point', ['Switch', 'Hub', 'Wireless Access Point', 'Firewall']),
+      ('What cable type should be used to connect the PCs to the switch?', 'Cat5e or Cat6 (Ethernet)', ['Coaxial', 'Cat5e or Cat6 (Ethernet)', 'Fiber optic', 'USB cable']),
+      ('What service automatically assigns IP addresses to devices on the network?', 'DHCP', ['DNS', 'DHCP', 'NAT', 'FTP']),
+      ('The shared printer needs to be accessible by all PCs. What is the best way to connect it?', 'Connect it directly to the switch with an Ethernet cable', ['Connect it via USB to one PC only', 'Connect it directly to the switch with an Ethernet cable', 'Connect it via Bluetooth', 'Connect it to the router WAN port']),
+      ('What IP address should be used as the default gateway for all devices?', 'The router LAN IP address', ['The ISP modem IP', 'The router LAN IP address', 'The switch IP address', 'The DNS server IP']),
+      ('What security measure should be enabled on the wireless network?', 'WPA2 or WPA3 encryption with a strong password', ['Leave it open for easy access', 'Use WEP encryption', 'WPA2 or WPA3 encryption with a strong password', 'Disable SSID only']),
+    ] %}
+
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Q{{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)">
+        <option value="">— Select answer —</option>
+        {% for opt in options %}
+        <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel) {
+  const s = sel.closest('.cable-scenario');
+  const fb = s.querySelector('.cable-feedback');
+  if (!sel.value) { fb.textContent=''; fb.className='cable-feedback'; return; }
+  fb.textContent = sel.value === s.dataset.answer ? '✓' : '✗';
+  fb.className = 'cable-feedback ' + (sel.value === s.dataset.answer ? 'correct-text' : 'wrong-text');
+}
+function submitLab() {
+  const scenarios = document.querySelectorAll('.cable-scenario');
+  let correct = 0, feedback = [];
+  scenarios.forEach((s,i) => {
+    const answer = s.dataset.answer;
+    const selected = s.querySelector('select').value;
+    const text = s.querySelector('.scenario-text').textContent.trim();
+    const ok = selected === answer;
+    if (ok) correct++;
+    feedback.push({ok, msg: `${ok?'✓':'✗'} Q${i+1}: ${ok ? answer : `You: "${selected||'nothing'}" | Correct: "${answer}"`}`});
+  });
+  const total = scenarios.length;
+  const passed = correct >= total - 1;
+  document.getElementById('result-content').innerHTML = `
+    <div class="lab-result-header ${correct===total?'pass':(passed?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div>
+    <div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>
+  `;
+  document.getElementById('lab-result').style.display = 'block';
+  document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});
+}
+function resetLab() {
+  document.querySelectorAll('.cable-select').forEach(s=>s.value='');
+  document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});
+  document.getElementById('lab-result').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+{% endblock %}

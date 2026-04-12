@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}User Permissions Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core2') }}">← Labs</a> / User Permissions</div>
+  <h1 class="page-title">Lab: User Permissions</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Configure the correct NTFS permissions and answer permission-related questions for each scenario.
+  </p>
+  <div class="cable-lab">
+    {% set questions = [
+      ('A user needs to read files in a shared folder but must NOT be able to modify or delete them. What NTFS permission should they be assigned?',
+       'Read',['Full Control','Modify','Read & Execute','Read']),
+      ('A manager needs to read, edit, create, and delete files in a department folder but should NOT be able to change permissions. What permission level is correct?',
+       'Modify',['Full Control','Modify','Read','Write']),
+      ('An administrator needs complete control over a folder including changing permissions and taking ownership. What permission is required?',
+       'Full Control',['Modify','Read & Execute','Full Control','Write']),
+      ('A user has Read permission via their user account but is also a member of a group with Modify permission on the same folder. What is their effective permission?',
+       'Modify — NTFS permissions are cumulative so the most permissive permission applies',
+       ['Read — the most restrictive applies','Modify — NTFS permissions are cumulative so the most permissive permission applies','Full Control — group permissions always win','No access — conflicting permissions cancel out']),
+      ('A user has Modify permission via NTFS but the shared folder permission is set to Read Only. They access the folder over the network. What is their effective permission?',
+       'Read Only — when NTFS and share permissions conflict the most restrictive wins',
+       ['Modify — NTFS always overrides share permissions','Read Only — when NTFS and share permissions conflict the most restrictive wins','Full Control — share permissions do not apply over the network','No access']),
+      ('A user needs to run executable files in a folder but not modify them. What is the minimum required permission?',
+       'Read & Execute',['Read','Write','Read & Execute','Modify']),
+      ('An employee has been terminated. What should be done with their user account and file permissions immediately?',
+       'Disable the account and transfer file ownership to their manager',
+       ['Delete the account immediately','Leave the account active for 30 days','Disable the account and transfer file ownership to their manager','Change their password only']),
+    ] %}
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Scenario {{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:580px">
+        <option value="">— Select correct permission / action —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core2') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Scenario ${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-1?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

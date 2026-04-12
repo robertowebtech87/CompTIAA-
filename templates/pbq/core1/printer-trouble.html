@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Printer Troubleshooting Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / Printer Troubleshooting</div>
+  <h1 class="page-title">Lab: Printer Troubleshooting</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    For each printer symptom described below, select the most likely cause and correct fix.
+  </p>
+
+  <div class="cable-lab">
+    {% set scenarios = [
+      ('A laser printer prints pages that are completely blank with no text or images.',
+       'Toner cartridge is empty or protective seal not removed',
+       ['Fuser assembly has failed','Toner cartridge is empty or protective seal not removed','Drum unit is worn out','Paper is the wrong size']),
+      ('Toner smears easily when you touch the printed page.',
+       'Fuser assembly is not heating properly',
+       ['Toner cartridge is overfilled','Wrong paper type selected in driver','Fuser assembly is not heating properly','Drum unit needs cleaning']),
+      ('A repeating black mark appears at regular intervals down every page.',
+       'Scratch or debris on the drum unit',
+       ['Toner is running low','Paper feed rollers are dirty','Scratch or debris on the drum unit','Fuser temperature is too high']),
+      ('A vertical white streak runs down the same area of every printed page.',
+       'Blocked toner distribution or scratch on the drum',
+       ['Paper tray is misaligned','Blocked toner distribution or scratch on the drum','Fuser is failing','Driver needs to be reinstalled']),
+      ('An inkjet printer produces colors that look wrong — reds appear orange.',
+       'One or more ink cartridges are empty or clogged',
+       ['Wrong color profile in Windows','Monitor calibration affecting print','One or more ink cartridges are empty or clogged','Paper type setting incorrect']),
+      ('Print jobs are sent but disappear from the queue and nothing prints.',
+       'Print spooler service has stopped or printer is set to offline',
+       ['Toner is low','Print spooler service has stopped or printer is set to offline','USB cable is faulty','Printer driver needs updating']),
+      ('A thermal receipt printer prints blank receipts.',
+       'Thermal paper is loaded with the wrong side facing the print head',
+       ['Print head temperature too low','Thermal paper is loaded with the wrong side facing the print head','Driver needs reinstalling','Paper roll is too wide']),
+      ('After replacing a toner cartridge the printer shows cartridge not recognized.',
+       'Cartridge is not fully seated or is incompatible with this printer model',
+       ['Cartridge needs to be warmed up first','Cartridge is not fully seated or is incompatible with this printer model','Printer firmware needs updating','Printer needs factory reset']),
+    ] %}
+
+    {% for symptom, answer, options in scenarios %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Symptom:</strong> {{ symptom }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:500px">
+        <option value="">— Select most likely cause / fix —</option>
+        {% for opt in options %}
+        <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel) {
+  const s = sel.closest('.cable-scenario');
+  const fb = s.querySelector('.cable-feedback');
+  if (!sel.value) { fb.textContent=''; fb.className='cable-feedback'; return; }
+  fb.textContent = sel.value === s.dataset.answer ? '✓' : '✗';
+  fb.className = 'cable-feedback ' + (sel.value === s.dataset.answer ? 'correct-text' : 'wrong-text');
+}
+function submitLab() {
+  const scenarios = document.querySelectorAll('.cable-scenario');
+  let correct = 0, feedback = [];
+  scenarios.forEach((s,i) => {
+    const answer = s.dataset.answer;
+    const selected = s.querySelector('select').value;
+    const ok = selected === answer;
+    if (ok) correct++;
+    feedback.push({ok, msg:`${ok?'✓':'✗'} Symptom ${i+1}: ${ok?'Correct!':'You: "'+( selected||'nothing')+'" | Correct: "'+answer+'"'}`});
+  });
+  const total = scenarios.length;
+  document.getElementById('result-content').innerHTML = `
+    <div class="lab-result-header ${correct===total?'pass':(correct>=total-2?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div>
+    <div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>
+  `;
+  document.getElementById('lab-result').style.display='block';
+  document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});
+}
+function resetLab() {
+  document.querySelectorAll('.cable-select').forEach(s=>s.value='');
+  document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});
+  document.getElementById('lab-result').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+{% endblock %}

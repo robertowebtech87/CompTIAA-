@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}RAM Installation Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / RAM Installation</div>
+  <h1 class="page-title">Lab: RAM Installation</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Answer each question about selecting, installing, and troubleshooting RAM correctly.
+  </p>
+  <div class="cable-lab">
+    {% set questions = [
+      ('A laptop needs a RAM upgrade. What physical form factor of RAM should you purchase?',
+       'SODIMM',['DIMM','SODIMM','SIMM','ECC RDIMM']),
+      ('A desktop motherboard supports DDR4-3200 RAM. The user wants to install DDR5 RAM they already own. Will this work?',
+       'No — DDR4 and DDR5 are not physically or electrically compatible',
+       ['Yes — DDR5 is backward compatible with DDR4 slots',
+        'No — DDR4 and DDR5 are not physically or electrically compatible',
+        'Yes — with a BIOS update',
+        'Yes — if the DDR5 speed is reduced to 3200']),
+      ('A system has two RAM slots and currently has one 8GB DDR4 stick. To get dual-channel performance what should you add?',
+       'An identical 8GB DDR4 stick in the second slot',
+       ['A 16GB DDR4 stick in the second slot',
+        'Two 4GB DDR4 sticks replacing the existing one',
+        'An identical 8GB DDR4 stick in the second slot',
+        'Any DDR4 stick regardless of size']),
+      ('After installing new RAM the system beeps continuously and fails to POST. What is most likely wrong?',
+       'The RAM is not fully seated or is incompatible with the motherboard',
+       ['The RAM is faulty and needs to be returned',
+        'The BIOS needs to be updated before new RAM is recognized',
+        'The RAM is not fully seated or is incompatible with the motherboard',
+        'The power supply cannot support the extra RAM']),
+      ('What tool should be used to test RAM for errors after installation?',
+       'MemTest86',
+       ['chkdsk','Device Manager','MemTest86','Task Manager']),
+      ('A technician installs 2x16GB RAM in a system with 4 slots. The BIOS shows only 16GB total. What should be checked?',
+       'Check that both sticks are fully seated in the correct slots — use slots 1 and 3 or 2 and 4 for dual channel',
+       ['Return one stick as the system only supports 16GB max',
+        'Update Windows to recognize more RAM',
+        'Check that both sticks are fully seated in the correct slots — use slots 1 and 3 or 2 and 4 for dual channel',
+        'Replace the power supply']),
+      ('Before handling RAM modules what precaution must be taken?',
+       'Wear an anti-static wrist strap or touch a grounded metal surface to discharge static electricity',
+       ['Wear rubber gloves',
+        'Wear an anti-static wrist strap or touch a grounded metal surface to discharge static electricity',
+        'Work quickly to minimize contact time',
+        'Heat the RAM to room temperature first']),
+    ] %}
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Q{{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:560px">
+        <option value="">— Select answer —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Q${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-1?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

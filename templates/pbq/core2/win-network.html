@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Windows Network Settings Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core2') }}">← Labs</a> / Windows Network Settings</div>
+  <h1 class="page-title">Lab: Windows Network Settings</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    A user cannot connect to the internet. Their wired connection was working yesterday.
+    Walk through the correct troubleshooting steps and settings in Windows to fix it.
+  </p>
+  <div class="lab-info-box" style="margin-bottom:1.5rem">
+    <div class="lab-info-row"><span class="lab-info-label">Symptom:</span><span>No internet, network icon shows exclamation mark</span></div>
+    <div class="lab-info-row"><span class="lab-info-label">OS:</span><span>Windows 11 Pro</span></div>
+    <div class="lab-info-row"><span class="lab-info-label">IP shown:</span><span>169.254.45.23</span></div>
+  </div>
+  <div class="cable-lab">
+    {% set questions = [
+      ('The IP address shown is 169.254.45.23. What does this tell you?',
+       'The computer has an APIPA address — it could not reach the DHCP server',
+       ['The IP is correct for this network','The computer has an APIPA address — it could not reach the DHCP server','The DNS server is down','The firewall is blocking the connection']),
+      ('What Windows command would you run first to see the full IP configuration?',
+       'ipconfig /all',
+       ['ping google.com','netstat','ipconfig /all','nslookup']),
+      ('After running ipconfig /all you see the IP is still 169.254.x.x. What should you try next?',
+       'Run ipconfig /release then ipconfig /renew to request a new IP from DHCP',
+       ['Reinstall Windows','Run ipconfig /release then ipconfig /renew to request a new IP from DHCP','Disable the firewall','Reset the browser']),
+      ('The ipconfig /renew fails with an error. Where in Windows do you verify the network adapter is enabled?',
+       'Settings → Network & Internet → Advanced network settings → Network adapters',
+       ['Control Panel → System','Settings → Network & Internet → Advanced network settings → Network adapters','Device Manager → Printers','Task Manager → Services']),
+      ('The adapter is enabled but still no IP. You ping 127.0.0.1 and get a reply. What does this confirm?',
+       'The local TCP/IP stack is working — the problem is with the physical connection or DHCP server',
+       ['The internet is working correctly','The DNS server is responding','The local TCP/IP stack is working — the problem is with the physical connection or DHCP server','The router is functioning']),
+      ('You check the physical cable and find it unplugged from the switch. After reconnecting what Windows tool quickly confirms a new IP was assigned?',
+       'ipconfig — run again to verify a valid 192.168.x.x address is now shown',
+       ['ping 127.0.0.1','Device Manager','ipconfig — run again to verify a valid 192.168.x.x address is now shown','Event Viewer']),
+    ] %}
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Step {{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:560px">
+        <option value="">— Select answer —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core2') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Step ${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-1?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

@@ -472,3 +472,49 @@ input[type=radio]:checked + .choice-radio-label { border-color: var(--accent); c
 .miss-mid { background: rgba(240,192,64,.15); color: var(--accent); border: 1px solid rgba(240,192,64,.3); }
 .miss-low { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
 .missed-attempts { font-family: var(--font-mono); font-size: .75rem; color: var(--muted); margin-bottom: .75rem; }
+
+/* ─── Exam Tabs ──────────────────────────────────────────────────────────── */
+.exam-tabs {
+  display: flex; gap: .75rem; margin-bottom: 1.75rem;
+}
+.exam-tab {
+  flex: 1; padding: .85rem 1rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  transition: border-color .2s, background .2s;
+}
+.exam-tab:hover { border-color: var(--accent); }
+.exam-tab.active {
+  border-color: var(--accent); background: rgba(240,192,64,.08);
+}
+.exam-tab-title {
+  font-family: var(--font-mono); font-size: 1rem; font-weight: 700;
+  color: var(--text);
+}
+.exam-tab.active .exam-tab-title { color: var(--accent); }
+.exam-tab-sub {
+  font-family: var(--font-mono); font-size: .7rem; color: var(--muted);
+  letter-spacing: .08em;
+}
+
+/* ─── Exam Action Links ───────────────────────────────────────────────────── */
+.exam-action-links {
+  display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .5rem;
+}
+.exam-action-link {
+  font-family: var(--font-mono); font-size: .78rem;
+  color: var(--muted); text-decoration: none;
+  padding: .4rem .85rem;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  transition: border-color .2s, color .2s;
+}
+.exam-action-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+/* ─── Attempt exam badge ─────────────────────────────────────────────────── */
+.attempt-exam-badge {
+  font-family: var(--font-mono); font-size: .68rem; font-weight: 700;
+  padding: .15rem .5rem; border-radius: 3px; letter-spacing: .06em;
+}
+.attempt-exam-badge.core1 { background: rgba(240,192,64,.15); color: var(--accent); }
+.attempt-exam-badge.core2 { background: rgba(74,222,128,.15); color: var(--accent2); }

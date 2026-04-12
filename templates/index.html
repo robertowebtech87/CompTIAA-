@@ -4,65 +4,149 @@
 <div class="hero">
   <div class="hero-bg-grid"></div>
   <div class="hero-content">
-    <div class="badge">CompTIA A+ Core 1 &amp; Core 2</div>
+    <div class="badge">CompTIA A+ Exam Prep</div>
     <h1 class="hero-title">Master the<br><span class="accent">A+ Exam.</span></h1>
-    <p class="hero-sub">Practice with your own question bank. Track progress. Pass with confidence.</p>
+    <p class="hero-sub">Choose your exam, pick your categories, and start practising.</p>
 
-    <div class="stats-row">
-      <div class="stat-card">
-        <span class="stat-num">{{ total_questions }}</span>
-        <span class="stat-label">Questions</span>
+    <!-- Exam Selector Tabs -->
+    <div class="exam-tabs">
+      <button class="exam-tab active" id="tab-core1" onclick="selectExam('core1')">
+        <span class="exam-tab-title">Core 1</span>
+        <span class="exam-tab-sub">220-1101</span>
+      </button>
+      <button class="exam-tab" id="tab-core2" onclick="selectExam('core2')">
+        <span class="exam-tab-title">Core 2</span>
+        <span class="exam-tab-sub">220-1102</span>
+      </button>
+    </div>
+
+    <!-- Core 1 Panel -->
+    <div class="exam-panel" id="panel-core1">
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-num">{{ core1.total_questions }}</span>
+          <span class="stat-label">Questions</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">{{ core1.total_attempts }}</span>
+          <span class="stat-label">Attempts</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">{{ core1.best_score }}%</span>
+          <span class="stat-label">Best Score</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" style="color:var(--accent2)">675</span>
+          <span class="stat-label">Pass Score</span>
+        </div>
       </div>
-      <div class="stat-card">
-        <span class="stat-num">{{ total_attempts }}</span>
-        <span class="stat-label">Attempts</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num">{{ best_score }}%</span>
-        <span class="stat-label">Best Score</span>
+
+      <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
+        <input type="hidden" name="exam" value="core1">
+        {% if core1.domains %}
+        <div class="form-row">
+          <label class="form-label">Categories</label>
+          <div class="domain-grid">
+            <label class="domain-chip all-chip selected" id="c1-chip-all">
+              <input type="checkbox" name="domains" value="all" checked onchange="toggleAll(this,'c1')">
+              <span class="chip-icon">⬡</span> All Categories
+              <span class="chip-count">{{ core1.total_questions }}</span>
+            </label>
+            {% for d in core1.domains %}
+            <label class="domain-chip" id="c1-chip-{{ loop.index }}">
+              <input type="checkbox" name="domains" value="{{ d.name }}" onchange="toggleDomain(this,'c1')">
+              <span class="chip-dot"></span>{{ d.name }}
+              <span class="chip-count">{{ d.count }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <div class="form-row">
+          <label class="form-label">Number of questions</label>
+          <div class="slider-wrap">
+            <input type="range" id="c1-num-q" name="num_questions" min="5"
+                   max="{{ [core1.total_questions, 90]|min }}" value="20"
+                   oninput="document.getElementById('c1-qval').textContent=this.value">
+            <span class="slider-val" id="c1-qval">20</span>
+          </div>
+        </div>
+        <button type="submit" class="btn-start" {% if core1.total_questions == 0 %}disabled{% endif %}>
+          Start Core 1 Quiz →
+        </button>
+      </form>
+
+      <div class="exam-action-links">
+        <a href="{{ url_for('study', exam='core1') }}" class="exam-action-link">📖 Study Mode</a>
+        <a href="{{ url_for('missed', exam='core1') }}" class="exam-action-link">❌ Missed Questions</a>
+        <a href="{{ url_for('history', exam='core1') }}" class="exam-action-link">📊 History</a>
       </div>
     </div>
 
-    <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
-
-      {% if domains %}
-      <div class="form-row">
-        <label class="form-label">Categories</label>
-        <div class="domain-grid">
-          <label class="domain-chip all-chip selected" id="chip-all">
-            <input type="checkbox" name="domains" value="all" checked onchange="toggleAll(this)">
-            <span class="chip-icon">⬡</span>
-            All Categories
-            <span class="chip-count">{{ total_questions }}</span>
-          </label>
-          {% for d in domains %}
-          <label class="domain-chip" id="chip-{{ loop.index }}">
-            <input type="checkbox" name="domains" value="{{ d.name }}" onchange="toggleDomain(this)">
-            <span class="chip-dot"></span>
-            {{ d.name }}
-            <span class="chip-count">{{ d.count }}</span>
-          </label>
-          {% endfor %}
+    <!-- Core 2 Panel -->
+    <div class="exam-panel" id="panel-core2" style="display:none">
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-num">{{ core2.total_questions }}</span>
+          <span class="stat-label">Questions</span>
         </div>
-      </div>
-      {% endif %}
-
-      <div class="form-row">
-        <label class="form-label">Number of questions</label>
-        <div class="slider-wrap">
-          <input type="range" id="num_q" name="num_questions" min="5" max="{{ [total_questions, 90]|min }}"
-                 value="20" oninput="document.getElementById('qval').textContent=this.value">
-          <span class="slider-val" id="qval">20</span>
+        <div class="stat-card">
+          <span class="stat-num">{{ core2.total_attempts }}</span>
+          <span class="stat-label">Attempts</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">{{ core2.best_score }}%</span>
+          <span class="stat-label">Best Score</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" style="color:var(--accent2)">700</span>
+          <span class="stat-label">Pass Score</span>
         </div>
       </div>
 
-      <button type="submit" class="btn-start" {% if total_questions == 0 %}disabled{% endif %}>
-        {% if total_questions == 0 %}Add Questions First →{% else %}Start Quiz →{% endif %}
-      </button>
-      {% if total_questions == 0 %}
-        <a href="{{ url_for('admin') }}" class="hint-link">Go to Admin to add your questions</a>
-      {% endif %}
-    </form>
+      <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
+        <input type="hidden" name="exam" value="core2">
+        {% if core2.domains %}
+        <div class="form-row">
+          <label class="form-label">Categories</label>
+          <div class="domain-grid">
+            <label class="domain-chip all-chip selected" id="c2-chip-all">
+              <input type="checkbox" name="domains" value="all" checked onchange="toggleAll(this,'c2')">
+              <span class="chip-icon">⬡</span> All Categories
+              <span class="chip-count">{{ core2.total_questions }}</span>
+            </label>
+            {% for d in core2.domains %}
+            <label class="domain-chip" id="c2-chip-{{ loop.index }}">
+              <input type="checkbox" name="domains" value="{{ d.name }}" onchange="toggleDomain(this,'c2')">
+              <span class="chip-dot"></span>{{ d.name }}
+              <span class="chip-count">{{ d.count }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <div class="form-row">
+          <label class="form-label">Number of questions</label>
+          <div class="slider-wrap">
+            <input type="range" id="c2-num-q" name="num_questions" min="5"
+                   max="{{ [core2.total_questions, 90]|min if core2.total_questions > 0 else 5 }}"
+                   value="{{ [core2.total_questions, 20]|min if core2.total_questions > 0 else 5 }}"
+                   oninput="document.getElementById('c2-qval').textContent=this.value">
+            <span class="slider-val" id="c2-qval">{{ [core2.total_questions, 20]|min if core2.total_questions > 0 else 0 }}</span>
+          </div>
+        </div>
+        <button type="submit" class="btn-start" style="background:var(--accent2);color:#0d0f14"
+                {% if core2.total_questions == 0 %}disabled{% endif %}>
+          {% if core2.total_questions == 0 %}No Core 2 Questions Yet{% else %}Start Core 2 Quiz →{% endif %}
+        </button>
+      </form>
+
+      <div class="exam-action-links">
+        <a href="{{ url_for('study', exam='core2') }}" class="exam-action-link">📖 Study Mode</a>
+        <a href="{{ url_for('missed', exam='core2') }}" class="exam-action-link">❌ Missed Questions</a>
+        <a href="{{ url_for('history', exam='core2') }}" class="exam-action-link">📊 History</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -72,6 +156,7 @@
   <div class="attempts-list">
     {% for a in recent %}
     <a href="{{ url_for('results', attempt_id=a.id) }}" class="attempt-row">
+      <span class="attempt-exam-badge {{ a.exam }}">{{ a.exam|upper }}</span>
       <span class="attempt-date">{{ a.created_at.strftime('%d %b %Y  %H:%M') }}</span>
       <span class="attempt-score">{{ a.correct_answers }}/{{ a.total_questions }}</span>
       <span class="attempt-scaled">{{ a.scaled_score }}/900</span>
@@ -83,48 +168,34 @@
 {% endif %}
 
 <script>
-function toggleAll(cb) {
-  const domainCbs = document.querySelectorAll('input[name="domains"]:not([value="all"])');
-  const allChip = document.getElementById('chip-all');
+function selectExam(exam) {
+  document.getElementById('panel-core1').style.display = exam === 'core1' ? 'block' : 'none';
+  document.getElementById('panel-core2').style.display = exam === 'core2' ? 'block' : 'none';
+  document.getElementById('tab-core1').classList.toggle('active', exam === 'core1');
+  document.getElementById('tab-core2').classList.toggle('active', exam === 'core2');
+}
+
+function toggleAll(cb, prefix) {
+  const domainCbs = document.querySelectorAll(`#panel-${prefix === 'c1' ? 'core1' : 'core2'} input[name="domains"]:not([value="all"])`);
+  const allChip = document.getElementById(`${prefix}-chip-all`);
   if (cb.checked) {
     domainCbs.forEach(c => { c.checked = false; c.closest('.domain-chip').classList.remove('selected'); });
     allChip.classList.add('selected');
-  } else {
-    cb.checked = true;
-  }
-  updateSliderMax();
+  } else { cb.checked = true; }
 }
 
-function toggleDomain(cb) {
-  const allCb = document.querySelector('input[value="all"]');
-  const allChip = document.getElementById('chip-all');
+function toggleDomain(cb, prefix) {
+  const panel = document.getElementById(`panel-${prefix === 'c1' ? 'core1' : 'core2'}`);
+  const allCb = panel.querySelector('input[value="all"]');
+  const allChip = document.getElementById(`${prefix}-chip-all`);
   const chip = cb.closest('.domain-chip');
   if (cb.checked) {
-    allCb.checked = false;
-    allChip.classList.remove('selected');
-    chip.classList.add('selected');
+    allCb.checked = false; allChip.classList.remove('selected'); chip.classList.add('selected');
   } else {
     chip.classList.remove('selected');
-    const anySelected = document.querySelectorAll('input[name="domains"]:not([value="all"]):checked').length > 0;
+    const anySelected = panel.querySelectorAll('input[name="domains"]:not([value="all"]):checked').length > 0;
     if (!anySelected) { allCb.checked = true; allChip.classList.add('selected'); }
   }
-  updateSliderMax();
-}
-
-function updateSliderMax() {
-  const allCb = document.querySelector('input[value="all"]');
-  const slider = document.getElementById('num_q');
-  const qval = document.getElementById('qval');
-  let total = {{ total_questions }};
-  if (!allCb.checked) {
-    const domainCounts = { {% for d in domains %}"{{ d.name }}": {{ d.count }},{% endfor %} };
-    const selected = document.querySelectorAll('input[name="domains"]:not([value="all"]):checked');
-    total = 0;
-    selected.forEach(cb => { total += domainCounts[cb.value] || 0; });
-  }
-  const maxQ = Math.min(total, 90);
-  slider.max = maxQ;
-  if (parseInt(slider.value) > maxQ) { slider.value = maxQ; qval.textContent = maxQ; }
 }
 </script>
 {% endblock %}

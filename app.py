@@ -13,13 +13,15 @@ db.init_app(app)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def get_domain_stats():
-    rows = db.session.query(
+def get_domain_stats(exam=None):
+    query = db.session.query(
         Question.domain,
         func.count(AttemptAnswer.id).label('total'),
         func.sum(AttemptAnswer.is_correct.cast(db.Integer)).label('correct')
-    ).join(Question, AttemptAnswer.question_id == Question.id)\
-     .group_by(Question.domain).order_by(Question.domain).all()
+    ).join(Question, AttemptAnswer.question_id == Question.id)
+    if exam:
+        query = query.filter(Question.exam == exam)
+    rows = query.group_by(Question.domain).order_by(Question.domain).all()
     stats = []
     for domain, total, correct in rows:
         if total and domain:
@@ -33,23 +35,31 @@ def get_domain_stats():
     stats.sort(key=lambda x: x['percent'])
     return stats
 
+def get_exam_stats(exam):
+    total_q = Question.query.filter_by(active=True, exam=exam).count()
+    total_attempts = QuizAttempt.query.filter_by(exam=exam).count()
+    best_score = db.session.query(func.max(QuizAttempt.score_percent))\
+        .filter_by(exam=exam).scalar() or 0
+    domain_counts = db.session.query(
+        Question.domain, func.count(Question.id)
+    ).filter_by(active=True, exam=exam)\
+     .group_by(Question.domain).order_by(Question.domain).all()
+    domains = [{'name': d, 'count': c} for d, c in domain_counts if d]
+    return {
+        'total_questions': total_q,
+        'total_attempts': total_attempts,
+        'best_score': round(best_score, 1),
+        'domains': domains
+    }
+
 # ── Home ──────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
-    total_questions = Question.query.count()
-    total_attempts = QuizAttempt.query.count()
-    best_score = db.session.query(func.max(QuizAttempt.score_percent)).scalar() or 0
+    core1 = get_exam_stats('core1')
+    core2 = get_exam_stats('core2')
     recent = QuizAttempt.query.order_by(QuizAttempt.created_at.desc()).limit(5).all()
-    domain_counts = db.session.query(
-        Question.domain, func.count(Question.id)
-    ).filter_by(active=True).group_by(Question.domain).order_by(Question.domain).all()
-    domains = [{'name': d, 'count': c} for d, c in domain_counts if d]
-    return render_template('index.html',
-                           total_questions=total_questions,
-                           total_attempts=total_attempts,
-                           best_score=round(best_score, 1),
-                           recent=recent, domains=domains)
+    return render_template('index.html', core1=core1, core2=core2, recent=recent)
 
 # ── Quiz ──────────────────────────────────────────────────────────────────────
 
@@ -57,19 +67,25 @@ def index():
 def start_quiz():
     num_questions = int(request.form.get('num_questions', 20))
     selected_domains = request.form.getlist('domains')
-    query = Question.query.filter_by(active=True)
+    exam = request.form.get('exam', 'core1')
+
+    query = Question.query.filter_by(active=True, exam=exam)
     if selected_domains and 'all' not in selected_domains:
         query = query.filter(Question.domain.in_(selected_domains))
+
     questions = query.all()
     if not questions:
-        return redirect(url_for('admin'))
+        return redirect(url_for('index'))
     sample = random.sample(questions, min(num_questions, len(questions)))
     question_ids = [q.id for q in sample]
     domains_label = ', '.join(selected_domains) if selected_domains and 'all' not in selected_domains else 'All Categories'
+    passing_score = 675 if exam == 'core1' else 700
     return render_template('quiz.html', question_ids=question_ids,
                            total=len(question_ids),
                            time_limit=len(question_ids) * 60,
-                           domains_label=domains_label)
+                           domains_label=domains_label,
+                           exam=exam,
+                           passing_score=passing_score)
 
 @app.route('/api/question/<int:qid>')
 def get_question(qid):
@@ -93,9 +109,13 @@ def submit_quiz():
     answers = data.get('answers', {})
     question_ids = data.get('question_ids', [])
     time_taken = data.get('time_taken', 0)
+    exam = data.get('exam', 'core1')
+    passing_score = 675 if exam == 'core1' else 700
+
     correct = 0
     attempt = QuizAttempt(total_questions=len(question_ids),
-                          time_taken=time_taken, created_at=datetime.utcnow())
+                          time_taken=time_taken, created_at=datetime.utcnow(),
+                          exam=exam)
     db.session.add(attempt)
     db.session.flush()
     for qid in question_ids:
@@ -112,7 +132,7 @@ def submit_quiz():
     total = len(question_ids)
     score_percent = (correct / total * 100) if total else 0
     scaled_score = int(100 + (score_percent / 100) * 800)
-    passed = scaled_score >= 675
+    passed = scaled_score >= passing_score
     attempt.correct_answers = correct
     attempt.score_percent = score_percent
     attempt.scaled_score = scaled_score
@@ -120,7 +140,8 @@ def submit_quiz():
     db.session.commit()
     return jsonify({'attempt_id': attempt.id, 'correct': correct, 'total': total,
                     'score_percent': round(score_percent, 1),
-                    'scaled_score': scaled_score, 'passed': passed})
+                    'scaled_score': scaled_score, 'passed': passed,
+                    'passing_score': passing_score})
 
 @app.route('/results/<int:attempt_id>')
 def results(attempt_id):
@@ -155,51 +176,63 @@ def results(attempt_id):
             'level': 'strong' if pct >= 75 else ('ok' if pct >= 50 else 'weak')
         })
     domain_breakdown.sort(key=lambda x: x['percent'])
+    passing_score = 675 if attempt.exam == 'core1' else 700
     return render_template('results.html', attempt=attempt, details=details,
-                           domain_breakdown=domain_breakdown)
+                           domain_breakdown=domain_breakdown,
+                           passing_score=passing_score)
 
 # ── History ───────────────────────────────────────────────────────────────────
 
 @app.route('/history')
 def history():
-    attempts = QuizAttempt.query.order_by(QuizAttempt.created_at.desc()).all()
-    domain_stats = get_domain_stats()
+    exam = request.args.get('exam', 'core1')
+    attempts = QuizAttempt.query.filter_by(exam=exam)\
+        .order_by(QuizAttempt.created_at.desc()).all()
+    domain_stats = get_domain_stats(exam=exam)
     missed_count = db.session.query(func.count(func.distinct(AttemptAnswer.question_id)))\
-        .filter_by(is_correct=False).scalar() or 0
+        .join(Question, AttemptAnswer.question_id == Question.id)\
+        .filter(AttemptAnswer.is_correct == False, Question.exam == exam).scalar() or 0
     return render_template('history.html', attempts=attempts,
-                           domain_stats=domain_stats, missed_count=missed_count)
+                           domain_stats=domain_stats,
+                           missed_count=missed_count,
+                           exam=exam)
 
 # ── Study Mode ────────────────────────────────────────────────────────────────
 
 @app.route('/study')
 def study():
+    exam = request.args.get('exam', 'core1')
     domain_counts = db.session.query(
         Question.domain, func.count(Question.id)
-    ).filter_by(active=True).group_by(Question.domain).order_by(Question.domain).all()
+    ).filter_by(active=True, exam=exam).group_by(Question.domain).order_by(Question.domain).all()
     domains = [{'name': d, 'count': c} for d, c in domain_counts if d]
-    total = Question.query.filter_by(active=True).count()
-    return render_template('study.html', domains=domains, total=total)
+    total = Question.query.filter_by(active=True, exam=exam).count()
+    return render_template('study.html', domains=domains, total=total, exam=exam)
 
 @app.route('/study/start', methods=['POST'])
 def start_study():
     selected_domains = request.form.getlist('domains')
-    query = Question.query.filter_by(active=True)
+    exam = request.form.get('exam', 'core1')
+    query = Question.query.filter_by(active=True, exam=exam)
     if selected_domains and 'all' not in selected_domains:
         query = query.filter(Question.domain.in_(selected_domains))
     questions = query.all()
     if not questions:
-        return redirect(url_for('study'))
+        return redirect(url_for('study', exam=exam))
     random.shuffle(questions)
     question_ids = [q.id for q in questions]
     return render_template('study_session.html', question_ids=question_ids,
-                           total=len(question_ids))
+                           total=len(question_ids), exam=exam)
 
 # ── Missed Questions ──────────────────────────────────────────────────────────
 
 @app.route('/missed')
 def missed():
+    exam = request.args.get('exam', 'core1')
     wrong_qids = db.session.query(AttemptAnswer.question_id)\
-        .filter_by(is_correct=False).distinct().all()
+        .join(Question, AttemptAnswer.question_id == Question.id)\
+        .filter(AttemptAnswer.is_correct == False, Question.exam == exam)\
+        .distinct().all()
     wrong_qids = [r[0] for r in wrong_qids]
     missed_questions = []
     for qid in wrong_qids:
@@ -217,33 +250,41 @@ def missed():
             'wrong_pct': round(total_wrong / total_seen * 100) if total_seen else 0
         })
     missed_questions.sort(key=lambda x: x['wrong_pct'], reverse=True)
-    return render_template('missed.html', missed=missed_questions)
+    return render_template('missed.html', missed=missed_questions, exam=exam)
 
 @app.route('/missed/quiz', methods=['POST'])
 def missed_quiz():
+    exam = request.form.get('exam', 'core1')
     wrong_qids = db.session.query(AttemptAnswer.question_id)\
-        .filter_by(is_correct=False).distinct().all()
+        .join(Question, AttemptAnswer.question_id == Question.id)\
+        .filter(AttemptAnswer.is_correct == False, Question.exam == exam)\
+        .distinct().all()
     question_ids = [r[0] for r in wrong_qids]
     random.shuffle(question_ids)
     if not question_ids:
-        return redirect(url_for('missed'))
+        return redirect(url_for('missed', exam=exam))
+    passing_score = 675 if exam == 'core1' else 700
     return render_template('quiz.html', question_ids=question_ids,
                            total=len(question_ids),
                            time_limit=len(question_ids) * 60,
-                           domains_label='Missed Questions')
+                           domains_label='Missed Questions',
+                           exam=exam, passing_score=passing_score)
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @app.route('/admin')
 def admin():
-    questions = Question.query.order_by(Question.id.desc()).all()
-    return render_template('admin.html', questions=questions)
+    exam = request.args.get('exam', 'core1')
+    questions = Question.query.filter_by(exam=exam).order_by(Question.id.desc()).all()
+    return render_template('admin.html', questions=questions, exam=exam)
 
 @app.route('/admin/question/new', methods=['GET', 'POST'])
 def new_question():
+    exam = request.args.get('exam', request.form.get('exam', 'core1'))
     if request.method == 'POST':
         q = Question(text=request.form['text'], domain=request.form.get('domain', ''),
-                     explanation=request.form.get('explanation', ''), active=True)
+                     explanation=request.form.get('explanation', ''),
+                     exam=request.form.get('exam', 'core1'), active=True)
         db.session.add(q)
         db.session.flush()
         for i in range(1, 5):
@@ -252,8 +293,8 @@ def new_question():
                 db.session.add(Choice(question_id=q.id, text=ct,
                                       is_correct=(request.form.get('correct') == str(i))))
         db.session.commit()
-        return redirect(url_for('admin'))
-    return render_template('question_form.html', question=None)
+        return redirect(url_for('admin', exam=exam))
+    return render_template('question_form.html', question=None, exam=exam)
 
 @app.route('/admin/question/<int:qid>/edit', methods=['GET', 'POST'])
 def edit_question(qid):
@@ -262,6 +303,7 @@ def edit_question(qid):
         q.text = request.form['text']
         q.domain = request.form.get('domain', '')
         q.explanation = request.form.get('explanation', '')
+        q.exam = request.form.get('exam', 'core1')
         for c in q.choices:
             db.session.delete(c)
         db.session.flush()
@@ -271,15 +313,16 @@ def edit_question(qid):
                 db.session.add(Choice(question_id=q.id, text=ct,
                                       is_correct=(request.form.get('correct') == str(i))))
         db.session.commit()
-        return redirect(url_for('admin'))
-    return render_template('question_form.html', question=q)
+        return redirect(url_for('admin', exam=q.exam))
+    return render_template('question_form.html', question=q, exam=q.exam)
 
 @app.route('/admin/question/<int:qid>/delete', methods=['POST'])
 def delete_question(qid):
     q = Question.query.get_or_404(qid)
+    exam = q.exam
     db.session.delete(q)
     db.session.commit()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin', exam=exam))
 
 @app.route('/admin/question/<int:qid>/toggle', methods=['POST'])
 def toggle_question(qid):
@@ -291,4 +334,7 @@ def toggle_question(qid):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # migrate existing questions to core1
+        Question.query.filter_by(exam=None).update({'exam': 'core1'})
+        db.session.commit()
     app.run(debug=True)

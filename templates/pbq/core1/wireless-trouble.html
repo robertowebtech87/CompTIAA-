@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Wireless Troubleshooting Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / Wireless Troubleshooting</div>
+  <h1 class="page-title">Lab: Wireless Troubleshooting</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Diagnose and resolve each wireless connectivity issue by selecting the correct cause and fix.
+  </p>
+  <div class="cable-lab">
+    {% set scenarios = [
+      ('A user cannot connect to Wi-Fi. Their laptop shows the network in the list but cannot join it. Other devices connect fine.',
+       'The user is entering the wrong Wi-Fi password',
+       ['The wireless access point has failed','The laptop NIC has failed','The user is entering the wrong Wi-Fi password','The router DHCP is full']),
+      ('A laptop connects to Wi-Fi but internet speed is very slow. Wired devices on the same network are fast.',
+       'The laptop is too far from the access point or there is physical interference weakening the signal',
+       ['The ISP is throttling wireless devices','The laptop NIC driver needs updating','The laptop is too far from the access point or there is physical interference weakening the signal','The DNS server is slow']),
+      ('A user reports their 2.4GHz Wi-Fi drops frequently near the kitchen.',
+       'Microwave oven interference — microwave ovens operate on the 2.4GHz frequency',
+       ['The router firmware is outdated','Microwave oven interference — microwave ovens operate on the 2.4GHz frequency','The DHCP lease is expiring','The Wi-Fi channel is set to auto']),
+      ('Multiple users in an office report slow Wi-Fi. A Wi-Fi analyzer shows channels 1, 6, and 11 are all congested.',
+       'Switch to the 5GHz band which has more non-overlapping channels and less congestion',
+       ['Add more DHCP addresses','Replace all access points','Switch to the 5GHz band which has more non-overlapping channels and less congestion','Disable all other Wi-Fi networks in the building']),
+      ('A laptop connects to Wi-Fi but cannot reach any websites. ping 192.168.1.1 succeeds.',
+       'DNS is not resolving — try setting DNS to 8.8.8.8 manually or check router DNS settings',
+       ['The Wi-Fi password is wrong','The router has failed','DNS is not resolving — try setting DNS to 8.8.8.8 manually or check router DNS settings','The laptop firewall is blocking all traffic']),
+      ('A new laptop cannot see the company 5GHz Wi-Fi network at all.',
+       'The laptop wireless adapter may only support 2.4GHz — check adapter specifications',
+       ['The router is broadcasting on the wrong channel','The laptop wireless adapter may only support 2.4GHz — check adapter specifications','The SSID is hidden','The Wi-Fi password uses special characters']),
+      ('A user connects to Wi-Fi successfully but gets IP address 169.254.x.x.',
+       'DHCP server is unreachable — the router may be down or the DHCP pool is exhausted',
+       ['The DNS server is down','The Wi-Fi password is incorrect','DHCP server is unreachable — the router may be down or the DHCP pool is exhausted','The wireless channel has too much interference']),
+      ('After moving to a new office the laptop shows Wi-Fi connected but no internet. The network name is the same as the old office.',
+       'The laptop connected to a neighbour\'s network with the same SSID — verify the correct network and reconnect',
+       ['The ISP has an outage','The router needs rebooting','The laptop connected to a neighbour\'s network with the same SSID — verify the correct network and reconnect','The firewall is blocking internet traffic']),
+    ] %}
+    {% for symptom, answer, options in scenarios %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Scenario {{ loop.index }}:</strong> {{ symptom }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:540px">
+        <option value="">— Select cause / fix —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Scenario ${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-2?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

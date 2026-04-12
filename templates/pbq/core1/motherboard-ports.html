@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Motherboard Ports Identification Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / Motherboard Ports Identification</div>
+  <h1 class="page-title">Lab: Motherboard Ports Identification</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    For each port or connector description, identify the correct port found on a typical motherboard or PC back panel.
+  </p>
+  <div class="cable-lab">
+    {% set questions = [
+      ('A rectangular blue port used to connect a keyboard or mouse on older systems.',
+       'PS/2 Port',['USB-A','PS/2 Port','RJ45','VGA']),
+      ('A trapezoidal 15-pin analog video output port — older monitors use this.',
+       'VGA (D-Sub)',['HDMI','DisplayPort','VGA (D-Sub)','DVI']),
+      ('A 24-pin digital video port that supports both single and dual link connections.',
+       'DVI',['HDMI','VGA (D-Sub)','DVI','DisplayPort']),
+      ('The most common modern video output — supports audio and video over one cable.',
+       'HDMI',['DisplayPort','DVI','VGA (D-Sub)','HDMI']),
+      ('A small rectangular port used to connect the system to a wired Ethernet network.',
+       'RJ45 (Ethernet)',['USB-A','RJ45 (Ethernet)','eSATA','Thunderbolt']),
+      ('A port that provides the fastest data transfer speeds and can also carry video — looks identical to USB-C.',
+       'Thunderbolt',['USB-C','HDMI','Thunderbolt','DisplayPort']),
+      ('A small oval-shaped audio port — typically color coded green for speakers/headphones.',
+       '3.5mm Audio Jack (Line Out)',['RCA','Optical Audio','3.5mm Audio Jack (Line Out)','S/PDIF']),
+      ('A rectangular slot on the motherboard used to install graphics cards and other expansion cards.',
+       'PCIe x16 Slot',['DIMM Slot','M.2 Slot','PCIe x16 Slot','SATA Port']),
+      ('A small key-shaped slot on the motherboard used to install NVMe SSDs.',
+       'M.2 Slot',['PCIe x1 Slot','SATA Port','M.2 Slot','mSATA']),
+      ('An L-shaped port on the motherboard that connects storage drives using a thin data cable.',
+       'SATA Port',['Molex','M.2 Slot','PCIe x1 Slot','SATA Port']),
+    ] %}
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Port {{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:400px">
+        <option value="">— Identify this port —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Port ${i+1}: ${ok?answer:'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-2?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

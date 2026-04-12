@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Network Cable Crimping Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:720px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core1') }}">← Labs</a> / Network Cable Crimping</div>
+  <h1 class="page-title">Lab: Network Cable Crimping</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    A technician needs to crimp a new RJ45 connector onto a Cat6 cable.
+    Place the steps in the correct order by dragging them.
+  </p>
+
+  <div class="bios-shell">
+    <div class="bios-titlebar">RJ45 CABLE CRIMPING PROCEDURE — Drag to order correctly</div>
+    <div class="bios-body">
+      <p class="bios-hint">Drag the steps into the correct order (1 = first step)</p>
+      <div class="boot-list" id="step-list">
+        <div class="boot-item" draggable="true" data-device="test" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-test">8</span>
+          <span class="boot-device-icon">🔍</span>
+          <span class="boot-device-name">Test the finished cable with a cable tester to verify all 8 wires have continuity</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="strip" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-strip">2</span>
+          <span class="boot-device-icon">✂️</span>
+          <span class="boot-device-name">Strip approximately 1 inch of the outer cable jacket using a cable stripper</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="gather" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-gather">1</span>
+          <span class="boot-device-icon">🔧</span>
+          <span class="boot-device-name">Gather tools — cable stripper, crimping tool, cable tester, RJ45 connectors, and Cat6 cable</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="crimp" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-crimp">7</span>
+          <span class="boot-device-icon">🔩</span>
+          <span class="boot-device-name">Insert the connector into the crimping tool and firmly squeeze to secure the wires and jacket</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="untwist" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-untwist">3</span>
+          <span class="boot-device-icon">🔀</span>
+          <span class="boot-device-name">Untwist and straighten all 8 wire pairs carefully</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="order" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-order">4</span>
+          <span class="boot-device-icon">📋</span>
+          <span class="boot-device-name">Arrange wires in the correct T568B order: O/W, O, G/W, B, B/W, G, Br/W, Br</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="trim" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-trim">5</span>
+          <span class="boot-device-icon">✂️</span>
+          <span class="boot-device-name">Trim the wires to an even length of about half an inch using wire cutters</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="insert" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-insert">6</span>
+          <span class="boot-device-icon">🔌</span>
+          <span class="boot-device-name">Insert all 8 wires fully into the RJ45 connector ensuring each wire reaches the end</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+      </div>
+      <div class="bios-buttons">
+        <button class="bios-btn" onclick="resetOrder()">F5 Reset</button>
+        <button class="bios-btn primary" onclick="submitOrder()">Submit Order</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-result" id="lab-result" style="display:none">
+    <div id="result-content"></div>
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+      <button class="btn-action secondary" onclick="resetOrder()">Try Again</button>
+      <a href="{{ url_for('pbq', exam='core1') }}" class="btn-action primary">Back to Labs</a>
+    </div>
+  </div>
+</div>
+<script>
+const CORRECT_ORDER = ['gather','strip','untwist','order','trim','insert','crimp','test'];
+const STEP_NAMES = {
+  gather:'Gather tools',strip:'Strip cable jacket',untwist:'Untwist and straighten wires',
+  order:'Arrange in T568B order',trim:'Trim wires to even length',
+  insert:'Insert wires into RJ45 connector',crimp:'Crimp the connector',test:'Test with cable tester'
+};
+let dragSrc=null;
+function dragStart(e){dragSrc=e.currentTarget;e.currentTarget.classList.add('dragging');}
+function dragEnd(e){e.currentTarget.classList.remove('dragging');}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function drop(e){e.preventDefault();const target=e.currentTarget;target.classList.remove('drag-over');if(dragSrc===target)return;const list=document.getElementById('step-list');const items=[...list.children];const srcIdx=items.indexOf(dragSrc);const tgtIdx=items.indexOf(target);if(srcIdx<tgtIdx)list.insertBefore(dragSrc,target.nextSibling);else list.insertBefore(dragSrc,target);updatePriorities();}
+function updatePriorities(){document.querySelectorAll('.boot-item').forEach((item,i)=>{document.getElementById('pri-'+item.dataset.device).textContent=i+1;});}
+function resetOrder(){const list=document.getElementById('step-list');['test','strip','gather','crimp','untwist','order','trim','insert'].forEach(dev=>{list.appendChild(document.querySelector(`[data-device="${dev}"]`));});updatePriorities();document.getElementById('lab-result').style.display='none';}
+function submitOrder(){
+  const items=[...document.querySelectorAll('.boot-item')];
+  const currentOrder=items.map(i=>i.dataset.device);
+  const passed=JSON.stringify(currentOrder)===JSON.stringify(CORRECT_ORDER);
+  const feedback=currentOrder.map((dev,i)=>{const correct=CORRECT_ORDER[i];const ok=dev===correct;return{ok,msg:`${ok?'✓':'✗'} Step ${i+1}: ${STEP_NAMES[dev]}${ok?'':' (should be: '+STEP_NAMES[correct]+')'}`};});
+  document.getElementById('result-content').innerHTML=`
+    <div class="lab-result-header ${passed?'pass':'fail'}">${passed?'✓ Correct Order!':'✗ Incorrect — Review the steps'}</div>
+    <div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>
+    <div class="lab-explanation">Remember T568B order: Orange/White, Orange, Green/White, Blue, Blue/White, Green, Brown/White, Brown. Always test the finished cable!</div>
+  `;
+  document.getElementById('lab-result').style.display='block';
+  document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});
+}
+</script>
+{% endblock %}

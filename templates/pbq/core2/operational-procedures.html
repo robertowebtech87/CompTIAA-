@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Operational Procedures Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:820px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core2') }}">← Labs</a> / Operational Procedures</div>
+  <h1 class="page-title">Lab: Operational Procedures</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    Apply correct IT operational procedures for documentation, ticketing, change management, and professional conduct.
+  </p>
+  <div class="cable-lab">
+    {% set questions = [
+      ('A user calls saying their email is not working. You fix it by restarting the mail service. What must you do before closing the ticket?',
+       'Document the problem description, steps taken to diagnose, the solution applied, and confirm with the user the issue is resolved',
+       ['Just close the ticket — it is fixed','Email the user a survey','Document the problem description, steps taken to diagnose, the solution applied, and confirm with the user the issue is resolved','Escalate to a senior technician for review']),
+      ('A technician wants to update the firewall rules on a production server. What must be done first according to change management?',
+       'Submit a change request, get it approved, document a rollback plan, and schedule a maintenance window',
+       ['Make the change immediately during business hours','Update the rules and document afterward','Submit a change request, get it approved, document a rollback plan, and schedule a maintenance window','Ask the user for permission']),
+      ('During a support call a user becomes rude and aggressive. What is the professional response?',
+       'Remain calm, stay professional, and if necessary escalate to a supervisor — never respond with aggression',
+       ['Hang up immediately','Match the user\'s tone to assert authority','Remain calm, stay professional, and if necessary escalate to a supervisor — never respond with aggression','Refuse to help until they apologize']),
+      ('A technician is working at a user\'s desk and notices confidential salary information on their screen. What should they do?',
+       'Maintain confidentiality — do not read or discuss the information and focus only on the task at hand',
+       ['Take a photo for documentation purposes','Report it to management','Maintain confidentiality — do not read or discuss the information and focus only on the task at hand','Ask the user to close it']),
+      ('A ticket has been open for 3 days with no resolution and the user is a department manager. What should happen?',
+       'Escalate the ticket to a senior technician or manager and update the user on the status',
+       ['Close the ticket and ask the user to resubmit','Continue working on it without telling the user','Escalate the ticket to a senior technician or manager and update the user on the status','Wait for the user to follow up']),
+      ('What information should always be collected when a new support ticket is opened?',
+       'User name, contact details, device information, problem description, and severity/priority level',
+       ['Only the user name and problem','User name, contact details, device information, problem description, and severity/priority level','The user\'s password for remote access','Department budget code']),
+      ('A technician finishes replacing a hard drive. Before leaving the user\'s desk what should they do?',
+       'Clean up the workspace, verify the system works correctly, explain what was done to the user, and close the ticket',
+       ['Leave immediately to attend the next ticket','Take the old drive without telling the user','Clean up the workspace, verify the system works correctly, explain what was done to the user, and close the ticket','Ask the user to test it themselves later']),
+      ('A company is disposing of old hard drives that contain sensitive employee data. What is the correct procedure?',
+       'Physically destroy the drives by shredding or degaussing — simple deletion or formatting is not sufficient',
+       ['Format the drives and donate them','Delete all files and recycle the drives','Physically destroy the drives by shredding or degaussing — simple deletion or formatting is not sufficient','Store them in a locked cabinet indefinitely']),
+    ] %}
+    {% for question, answer, options in questions %}
+    <div class="cable-scenario" data-answer="{{ answer }}">
+      <p class="scenario-text"><strong>Scenario {{ loop.index }}:</strong> {{ question }}</p>
+      <select class="cable-select" onchange="checkSelect(this)" style="width:100%;max-width:580px">
+        <option value="">— Select correct procedure —</option>
+        {% for opt in options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+      <span class="cable-feedback"></span>
+    </div>
+    {% endfor %}
+    <div class="lab-actions" style="margin-top:1rem">
+      <button class="btn-start" onclick="submitLab()">Submit Answers</button>
+      <button class="btn-action secondary" onclick="resetLab()">Reset</button>
+    </div>
+    <div class="lab-result" id="lab-result" style="display:none">
+      <div id="result-content"></div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+        <button class="btn-action secondary" onclick="resetLab()">Try Again</button>
+        <a href="{{ url_for('pbq', exam='core2') }}" class="btn-action primary">Back to Labs</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function checkSelect(sel){const s=sel.closest('.cable-scenario');const fb=s.querySelector('.cable-feedback');if(!sel.value){fb.textContent='';fb.className='cable-feedback';return;}fb.textContent=sel.value===s.dataset.answer?'✓':'✗';fb.className='cable-feedback '+(sel.value===s.dataset.answer?'correct-text':'wrong-text');}
+function submitLab(){const scenarios=document.querySelectorAll('.cable-scenario');let correct=0,feedback=[];scenarios.forEach((s,i)=>{const answer=s.dataset.answer;const selected=s.querySelector('select').value;const ok=selected===answer;if(ok)correct++;feedback.push({ok,msg:`${ok?'✓':'✗'} Scenario ${i+1}: ${ok?'Correct!':'You: "'+(selected||'nothing')+'" | Correct: "'+answer+'"'}`});});const total=scenarios.length;document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${correct===total?'pass':(correct>=total-2?'partial':'fail')}">${correct}/${total} correct${correct===total?' — Perfect!':''}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div>`;document.getElementById('lab-result').style.display='block';document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});}
+function resetLab(){document.querySelectorAll('.cable-select').forEach(s=>s.value='');document.querySelectorAll('.cable-feedback').forEach(f=>{f.textContent='';f.className='cable-feedback';});document.getElementById('lab-result').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+{% endblock %}

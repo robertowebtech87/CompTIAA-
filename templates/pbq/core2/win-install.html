@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Windows Installation Steps Lab{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:720px">
+  <div class="lab-breadcrumb"><a href="{{ url_for('pbq', exam='core2') }}">← Labs</a> / Windows Installation Steps</div>
+  <h1 class="page-title">Lab: Windows Installation Steps</h1>
+  <p style="color:var(--muted);margin-bottom:1.5rem">
+    A technician is performing a clean installation of Windows 11 on a new PC.
+    Drag the steps into the correct order.
+  </p>
+
+  <div class="bios-shell">
+    <div class="bios-titlebar">WINDOWS 11 CLEAN INSTALLATION — Drag to order correctly</div>
+    <div class="bios-body">
+      <p class="bios-hint">Drag the steps into the correct order (1 = first step)</p>
+      <div class="boot-list" id="step-list">
+        <div class="boot-item" draggable="true" data-device="updates" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-updates">9</span>
+          <span class="boot-device-icon">🔄</span>
+          <span class="boot-device-name">Run Windows Update to install all available updates and patches</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="bios_boot" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-bios_boot">2</span>
+          <span class="boot-device-icon">⚙️</span>
+          <span class="boot-device-name">Enter BIOS/UEFI and set USB drive as the first boot device</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="partition" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-partition">5</span>
+          <span class="boot-device-icon">💾</span>
+          <span class="boot-device-name">Select the target drive and partition — delete existing partitions for a clean install</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="media" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-media">1</span>
+          <span class="boot-device-icon">💿</span>
+          <span class="boot-device-name">Create bootable Windows 11 installation media using the Media Creation Tool on a USB drive</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="setup" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-setup">4</span>
+          <span class="boot-device-icon">🖥️</span>
+          <span class="boot-device-name">Select language, time format, and keyboard layout in the Windows setup screen</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="install_files" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-install_files">6</span>
+          <span class="boot-device-icon">📦</span>
+          <span class="boot-device-name">Windows copies files and installs — system will restart several times automatically</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="boot_usb" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-boot_usb">3</span>
+          <span class="boot-device-icon">🔌</span>
+          <span class="boot-device-name">Boot from the USB drive — press any key when prompted to boot from USB</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="oobe" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-oobe">7</span>
+          <span class="boot-device-icon">👤</span>
+          <span class="boot-device-name">Complete OOBE (Out of Box Experience) — set region, account, privacy settings</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+        <div class="boot-item" draggable="true" data-device="drivers" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="boot-priority" id="pri-drivers">8</span>
+          <span class="boot-device-icon">🔧</span>
+          <span class="boot-device-name">Install drivers for hardware components — GPU, network adapter, chipset</span>
+          <span class="boot-drag-hint">⠿</span>
+        </div>
+      </div>
+      <div class="bios-buttons">
+        <button class="bios-btn" onclick="resetOrder()">F5 Reset</button>
+        <button class="bios-btn primary" onclick="submitOrder()">Submit Order</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-result" id="lab-result" style="display:none">
+    <div id="result-content"></div>
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap">
+      <button class="btn-action secondary" onclick="resetOrder()">Try Again</button>
+      <a href="{{ url_for('pbq', exam='core2') }}" class="btn-action primary">Back to Labs</a>
+    </div>
+  </div>
+</div>
+<script>
+const CORRECT_ORDER=['media','bios_boot','boot_usb','setup','partition','install_files','oobe','drivers','updates'];
+const STEP_NAMES={media:'Create bootable USB media',bios_boot:'Set USB as first boot in BIOS',boot_usb:'Boot from USB drive',setup:'Select language and layout',partition:'Select drive and partition',install_files:'Windows copies files and installs',oobe:'Complete OOBE setup',drivers:'Install drivers',updates:'Run Windows Update'};
+let dragSrc=null;
+function dragStart(e){dragSrc=e.currentTarget;e.currentTarget.classList.add('dragging');}
+function dragEnd(e){e.currentTarget.classList.remove('dragging');}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function drop(e){e.preventDefault();const target=e.currentTarget;target.classList.remove('drag-over');if(dragSrc===target)return;const list=document.getElementById('step-list');const items=[...list.children];const srcIdx=items.indexOf(dragSrc);const tgtIdx=items.indexOf(target);if(srcIdx<tgtIdx)list.insertBefore(dragSrc,target.nextSibling);else list.insertBefore(dragSrc,target);updatePriorities();}
+function updatePriorities(){document.querySelectorAll('.boot-item').forEach((item,i)=>{document.getElementById('pri-'+item.dataset.device).textContent=i+1;});}
+function resetOrder(){const list=document.getElementById('step-list');['updates','bios_boot','partition','media','setup','install_files','boot_usb','oobe','drivers'].forEach(dev=>{list.appendChild(document.querySelector(`[data-device="${dev}"]`));});updatePriorities();document.getElementById('lab-result').style.display='none';}
+function submitOrder(){
+  const items=[...document.querySelectorAll('.boot-item')];
+  const currentOrder=items.map(i=>i.dataset.device);
+  const passed=JSON.stringify(currentOrder)===JSON.stringify(CORRECT_ORDER);
+  const feedback=currentOrder.map((dev,i)=>{const correct=CORRECT_ORDER[i];const ok=dev===correct;return{ok,msg:`${ok?'✓':'✗'} Step ${i+1}: ${STEP_NAMES[dev]}${ok?'':' (should be: '+STEP_NAMES[correct]+')'}`};});
+  document.getElementById('result-content').innerHTML=`<div class="lab-result-header ${passed?'pass':'fail'}">${passed?'✓ Correct Order!':'✗ Incorrect — Review the steps'}</div><div class="lab-feedback-list">${feedback.map(f=>`<div class="lab-feedback-item ${f.ok?'ok':'wrong'}">${f.msg}</div>`).join('')}</div><div class="lab-explanation">Key order: Create media → BIOS boot order → Boot USB → Setup options → Partition → Install → OOBE → Drivers → Updates</div>`;
+  document.getElementById('lab-result').style.display='block';
+  document.getElementById('lab-result').scrollIntoView({behavior:'smooth'});
+}
+</script>
+{% endblock %}

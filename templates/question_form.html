@@ -5,6 +5,8 @@
   <h1 class="page-title">{{ 'Edit Question' if question else 'New Question' }}</h1>
 
   <form action="" method="POST" class="q-form">
+    <input type="hidden" name="exam" value="{{ exam }}">
+
     <div class="field">
       <label class="field-label">Question Text *</label>
       <textarea name="text" class="field-input" rows="3" required>{{ question.text if question else '' }}</textarea>
@@ -17,20 +19,55 @@
     </div>
 
     <div class="field">
+      <label class="field-label">Exam</label>
+      <select name="exam" class="field-input">
+        <option value="core1" {{ 'selected' if (question and question.exam == 'core1') or not question else '' }}>Core 1 (220-1101)</option>
+        <option value="core2" {{ 'selected' if question and question.exam == 'core2' else '' }}>Core 2 (220-1102)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Question Type</label>
+      <div style="display:flex;gap:1.5rem;align-items:center;margin-top:.25rem">
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
+          <input type="radio" name="multi_select" value="0" id="single"
+                 {{ 'checked' if not question or not question.multi_select else '' }}
+                 onchange="updateCorrectMode(false)">
+          Single answer
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
+          <input type="radio" name="multi_select" value="1" id="multi"
+                 {{ 'checked' if question and question.multi_select else '' }}
+                 onchange="updateCorrectMode(true)">
+          Multiple answers (Select TWO or more)
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
       <label class="field-label">Explanation (optional)</label>
       <textarea name="explanation" class="field-input" rows="2"
                 placeholder="Brief explanation of the correct answer…">{{ question.explanation if question else '' }}</textarea>
     </div>
 
     <fieldset class="choices-fieldset">
-      <legend class="field-label">Answer Choices — select the correct one</legend>
+      <legend class="field-label" id="choices-legend">Answer Choices — select the correct one</legend>
       {% set existing = question.choices if question else [] %}
       {% for i in range(1, 5) %}
       {% set c = existing[i-1] if i <= existing|length else None %}
       <div class="choice-row">
-        <input type="radio" name="correct" value="{{ i }}" id="r{{ i }}"
-               {{ 'checked' if c and c.is_correct else '' }} required>
-        <label for="r{{ i }}" class="choice-radio-label">{{ i }}</label>
+        <!-- Single select radio (shown by default) -->
+        <div class="single-select-ctrl" id="single-ctrl-{{ i }}">
+          <input type="radio" name="correct" value="{{ i }}" id="r{{ i }}"
+                 {{ 'checked' if c and c.is_correct and not (question and question.multi_select) else '' }}>
+          <label for="r{{ i }}" class="choice-radio-label">{{ i }}</label>
+        </div>
+        <!-- Multi select checkbox -->
+        <div class="multi-select-ctrl" id="multi-ctrl-{{ i }}" style="display:none">
+          <input type="checkbox" name="correct_multi" value="{{ i }}" id="m{{ i }}"
+                 {{ 'checked' if c and c.is_correct else '' }}
+                 style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
+        </div>
         <input type="text" name="choice_{{ i }}" class="field-input choice-input"
                placeholder="Answer option {{ i }}…" value="{{ c.text if c else '' }}"
                {{ 'required' if i <= 2 else '' }}>
@@ -39,9 +76,25 @@
     </fieldset>
 
     <div class="form-actions">
-      <a href="{{ url_for('admin') }}" class="btn-action secondary">Cancel</a>
+      <a href="{{ url_for('admin', exam=exam) }}" class="btn-action secondary">Cancel</a>
       <button type="submit" class="btn-action primary">{{ 'Save Changes' if question else 'Add Question' }}</button>
     </div>
   </form>
 </div>
+
+<script>
+const isMulti = {{ 'true' if question and question.multi_select else 'false' }};
+if (isMulti) updateCorrectMode(true);
+
+function updateCorrectMode(multi) {
+  const legend = document.getElementById('choices-legend');
+  legend.textContent = multi
+    ? 'Answer Choices — check ALL correct answers'
+    : 'Answer Choices — select the correct one';
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('single-ctrl-' + i).style.display = multi ? 'none' : '';
+    document.getElementById('multi-ctrl-' + i).style.display = multi ? '' : 'none';
+  }
+}
+</script>
 {% endblock %}

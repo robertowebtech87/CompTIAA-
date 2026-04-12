@@ -92,16 +92,20 @@ def get_question(qid):
     q = Question.query.get_or_404(qid)
     choices = [{'id': c.id, 'text': c.text} for c in q.choices]
     random.shuffle(choices)
+    correct_count = sum(1 for c in q.choices if c.is_correct)
     return jsonify({'id': q.id, 'text': q.text, 'choices': choices,
-                    'domain': q.domain, 'explanation': q.explanation})
+                    'domain': q.domain, 'explanation': q.explanation,
+                    'multi_select': bool(q.multi_select), 'correct_count': correct_count})
 
 @app.route('/api/study/question/<int:qid>')
 def get_study_question(qid):
     q = Question.query.get_or_404(qid)
     choices = [{'id': c.id, 'text': c.text, 'correct': c.is_correct} for c in q.choices]
     random.shuffle(choices)
+    correct_count = sum(1 for c in q.choices if c.is_correct)
     return jsonify({'id': q.id, 'text': q.text, 'choices': choices,
-                    'domain': q.domain, 'explanation': q.explanation})
+                    'domain': q.domain, 'explanation': q.explanation,
+                    'multi_select': bool(q.multi_select), 'correct_count': correct_count})
 
 @app.route('/api/submit', methods=['POST'])
 def submit_quiz():
@@ -122,13 +126,29 @@ def submit_quiz():
         q = Question.query.get(qid)
         if not q:
             continue
-        correct_choice = next((c for c in q.choices if c.is_correct), None)
-        user_choice_id = answers.get(str(qid))
-        is_correct = bool(correct_choice and user_choice_id and int(user_choice_id) == correct_choice.id)
+        if q.multi_select:
+            correct_ids = set(str(c.id) for c in q.choices if c.is_correct)
+            user_ids_raw = answers.get(str(qid), [])
+            if isinstance(user_ids_raw, list):
+                user_ids = set(str(i) for i in user_ids_raw)
+            else:
+                user_ids = {str(user_ids_raw)} if user_ids_raw else set()
+            is_correct = user_ids == correct_ids
+            chosen_ids_str = ','.join(sorted(user_ids))
+            db.session.add(AttemptAnswer(attempt_id=attempt.id, question_id=qid,
+                                         chosen_choice_id=None,
+                                         chosen_choice_ids=chosen_ids_str,
+                                         is_correct=is_correct))
+        else:
+            correct_choice = next((c for c in q.choices if c.is_correct), None)
+            user_choice_id = answers.get(str(qid))
+            is_correct = bool(correct_choice and user_choice_id and int(user_choice_id) == correct_choice.id)
+            db.session.add(AttemptAnswer(attempt_id=attempt.id, question_id=qid,
+                                         chosen_choice_id=user_choice_id,
+                                         chosen_choice_ids='',
+                                         is_correct=is_correct))
         if is_correct:
             correct += 1
-        db.session.add(AttemptAnswer(attempt_id=attempt.id, question_id=qid,
-                                     chosen_choice_id=user_choice_id, is_correct=is_correct))
     total = len(question_ids)
     score_percent = (correct / total * 100) if total else 0
     scaled_score = int(100 + (score_percent / 100) * 800)
@@ -153,13 +173,25 @@ def results(attempt_id):
         q = Question.query.get(aa.question_id)
         if not q:
             continue
-        correct_choice = next((c for c in q.choices if c.is_correct), None)
-        user_choice = Choice.query.get(aa.chosen_choice_id) if aa.chosen_choice_id else None
+        correct_choices = [c for c in q.choices if c.is_correct]
+        correct_texts = ' | '.join(c.text for c in correct_choices)
+        if q.multi_select:
+            chosen_ids = [int(i) for i in aa.chosen_choice_ids.split(',') if i]
+            chosen_texts = ' | '.join(
+                c.text for c in q.choices if c.id in chosen_ids
+            ) or 'Not answered'
+            your_answer = chosen_texts
+        else:
+            user_choice = Choice.query.get(aa.chosen_choice_id) if aa.chosen_choice_id else None
+            your_answer = user_choice.text if user_choice else 'Not answered'
         details.append({
             'question': q.text, 'domain': q.domain,
-            'your_answer': user_choice.text if user_choice else 'Not answered',
-            'correct_answer': correct_choice.text if correct_choice else 'N/A',
-            'is_correct': aa.is_correct, 'explanation': q.explanation or ''
+            'your_answer': your_answer,
+            'correct_answer': correct_texts,
+            'is_correct': aa.is_correct,
+            'explanation': q.explanation or '',
+            'multi_select': bool(q.multi_select),
+            'correct_count': len(correct_choices)
         })
         d = q.domain or 'Uncategorized'
         if d not in domain_map:
@@ -282,16 +314,22 @@ def admin():
 def new_question():
     exam = request.args.get('exam', request.form.get('exam', 'core1'))
     if request.method == 'POST':
+        is_multi = request.form.get('multi_select', '0') == '1'
+        correct_multi = request.form.getlist('correct_multi')
         q = Question(text=request.form['text'], domain=request.form.get('domain', ''),
                      explanation=request.form.get('explanation', ''),
-                     exam=request.form.get('exam', 'core1'), active=True)
+                     exam=request.form.get('exam', 'core1'),
+                     multi_select=is_multi, active=True)
         db.session.add(q)
         db.session.flush()
         for i in range(1, 5):
             ct = request.form.get(f'choice_{i}')
             if ct:
-                db.session.add(Choice(question_id=q.id, text=ct,
-                                      is_correct=(request.form.get('correct') == str(i))))
+                if is_multi:
+                    is_correct = str(i) in correct_multi
+                else:
+                    is_correct = request.form.get('correct') == str(i)
+                db.session.add(Choice(question_id=q.id, text=ct, is_correct=is_correct))
         db.session.commit()
         return redirect(url_for('admin', exam=exam))
     return render_template('question_form.html', question=None, exam=exam)
@@ -300,18 +338,24 @@ def new_question():
 def edit_question(qid):
     q = Question.query.get_or_404(qid)
     if request.method == 'POST':
+        is_multi = request.form.get('multi_select', '0') == '1'
+        correct_multi = request.form.getlist('correct_multi')
         q.text = request.form['text']
         q.domain = request.form.get('domain', '')
         q.explanation = request.form.get('explanation', '')
         q.exam = request.form.get('exam', 'core1')
+        q.multi_select = is_multi
         for c in q.choices:
             db.session.delete(c)
         db.session.flush()
         for i in range(1, 5):
             ct = request.form.get(f'choice_{i}')
             if ct:
-                db.session.add(Choice(question_id=q.id, text=ct,
-                                      is_correct=(request.form.get('correct') == str(i))))
+                if is_multi:
+                    is_correct = str(i) in correct_multi
+                else:
+                    is_correct = request.form.get('correct') == str(i)
+                db.session.add(Choice(question_id=q.id, text=ct, is_correct=is_correct))
         db.session.commit()
         return redirect(url_for('admin', exam=q.exam))
     return render_template('question_form.html', question=q, exam=q.exam)

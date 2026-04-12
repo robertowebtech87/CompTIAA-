@@ -72,16 +72,26 @@ async function loadQuestion(index) {
   const letters = ['A', 'B', 'C', 'D'];
   const selectedId = answers[qid];
 
+  const isMulti = q.multi_select;
+  const correctCount = q.correct_count || 1;
+  const selectedIds = answers[qid] || (isMulti ? [] : null);
+
   area.innerHTML = `
     <p class="question-text">${q.text}</p>
+    ${isMulti ? `<div class="multi-select-hint">Select <strong>${correctCount}</strong> answers</div>` : ''}
     <div class="choices-list">
-      ${q.choices.map((c, i) => `
-        <button class="choice-btn ${selectedId == c.id ? 'selected' : ''}"
-                onclick="selectAnswer(${qid}, ${c.id}, this)">
-          <span class="choice-letter">${letters[i]}</span>
-          ${c.text}
-        </button>
-      `).join('')}
+      ${q.choices.map((c, i) => {
+        const isSelected = isMulti
+          ? (Array.isArray(selectedIds) && selectedIds.includes(c.id))
+          : selectedIds == c.id;
+        return `
+          <button class="choice-btn ${isSelected ? 'selected' : ''}"
+                  onclick="${isMulti ? `selectMultiAnswer(${qid}, ${c.id}, ${correctCount}, this)` : `selectAnswer(${qid}, ${c.id}, this)`}">
+            <span class="choice-letter ${isMulti ? 'multi' : ''}">${letters[i]}</span>
+            ${c.text}
+          </button>
+        `;
+      }).join('')}
     </div>
   `;
 
@@ -105,6 +115,27 @@ function selectAnswer(qid, choiceId, btn) {
   answers[qid] = choiceId;
   document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
+  updateDots();
+}
+
+function selectMultiAnswer(qid, choiceId, correctCount, btn) {
+  if (!Array.isArray(answers[qid])) answers[qid] = [];
+  const idx = answers[qid].indexOf(choiceId);
+  if (idx === -1) {
+    // Add if not already at limit
+    if (answers[qid].length < correctCount) {
+      answers[qid].push(choiceId);
+      btn.classList.add('selected');
+    } else {
+      // Flash the button to indicate limit reached
+      btn.classList.add('limit-flash');
+      setTimeout(() => btn.classList.remove('limit-flash'), 400);
+    }
+  } else {
+    // Deselect
+    answers[qid].splice(idx, 1);
+    btn.classList.remove('selected');
+  }
   updateDots();
 }
 
@@ -147,7 +178,8 @@ async function confirmSubmit() {
     body: JSON.stringify({
       answers,
       question_ids: QUESTION_IDS,
-      time_taken: timeElapsed
+      time_taken: timeElapsed,
+      exam: typeof EXAM !== 'undefined' ? EXAM : 'core1'
     })
   });
 

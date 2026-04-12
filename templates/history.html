@@ -1,31 +1,122 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}CompTIA A+ Prep{% endblock %}</title>
-  
-  
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <nav class="navbar">
-    <a href="{{ url_for('index') }}" class="nav-brand">
-      <span class="brand-icon">⬡</span>
-      <span class="brand-text">A<span class="brand-plus">+</span> PREP</span>
-    </a>
-    <div class="nav-links">
-      <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a>
-      <a href="{{ url_for('study') }}" class="nav-link {% if request.endpoint in ['study','start_study'] %}active{% endif %}">Study</a>
-      <a href="{{ url_for('missed') }}" class="nav-link {% if request.endpoint == 'missed' %}active{% endif %}">Missed</a>
-      <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">History</a>
-      <a href="{{ url_for('admin') }}" class="nav-link {% if request.endpoint == 'admin' %}active{% endif %}">Admin</a>
+{% extends "base.html" %}
+{% block title %}History — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap">
+
+  <!-- Exam Tabs -->
+  <div class="exam-tabs" style="max-width:400px;margin-bottom:1.5rem">
+    <button class="exam-tab {% if exam == 'core1' %}active{% endif %}" onclick="window.location='{{ url_for('history', exam='core1') }}'">
+      <span class="exam-tab-title">Core 1</span>
+      <span class="exam-tab-sub">220-1101</span>
+    </button>
+    <button class="exam-tab {% if exam == 'core2' %}active{% endif %}" onclick="window.location='{{ url_for('history', exam='core2') }}'">
+      <span class="exam-tab-title">Core 2</span>
+      <span class="exam-tab-sub">220-1102</span>
+    </button>
+  </div>
+
+  <h1 class="page-title">History — {{ exam|upper }}</h1>
+
+  {% if domain_stats %}
+  <div class="weak-areas-section" style="margin-bottom:2.5rem">
+    <div class="section-header-row">
+      <h2 class="section-title">All-Time Performance by Category</h2>
+      {% if missed_count > 0 %}
+      <a href="{{ url_for('missed', exam=exam) }}" class="view-link">{{ missed_count }} missed questions →</a>
+      {% endif %}
     </div>
-  </nav>
-  <main class="main-content">
-    {% block content %}{% endblock %}
-  </main>
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
-  {% block scripts %}{% endblock %}
-</body>
-</html>
+    <div class="domain-bars">
+      {% for d in domain_stats %}
+      <div class="domain-bar-row">
+        <div class="domain-bar-label">
+          <span class="domain-name">{{ d.domain }}</span>
+          <span class="domain-score {{ d.level }}">{{ d.correct }}/{{ d.total }} &nbsp;{{ d.percent }}%</span>
+        </div>
+        <div class="domain-bar-track">
+          <div class="domain-bar-fill {{ d.level }}" style="width: {{ d.percent }}%"></div>
+        </div>
+        {% if d.level == 'weak' %}<span class="domain-tag-weak">⚠ Needs work</span>
+        {% elif d.level == 'ok' %}<span class="domain-tag-ok">→ Getting there</span>
+        {% else %}<span class="domain-tag-strong">✓ Strong</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if attempts %}
+  <div class="history-chart-wrap">
+    <canvas id="scoreChart"></canvas>
+  </div>
+
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Date</th><th>Questions</th><th>Correct</th>
+        <th>Score %</th><th>Scaled</th><th>Time</th><th>Result</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in attempts %}
+      <tr class="{{ 'row-pass' if a.passed else 'row-fail' }}">
+        <td>{{ a.created_at.strftime('%d %b %Y %H:%M') }}</td>
+        <td>{{ a.total_questions }}</td>
+        <td>{{ a.correct_answers }}</td>
+        <td>{{ a.score_percent | round(1) }}%</td>
+        <td>{{ a.scaled_score }}/900</td>
+        <td>{{ '%d:%02d'|format(a.time_taken // 60, a.time_taken % 60) }}</td>
+        <td><span class="badge-sm {{ 'pass' if a.passed else 'fail' }}">{{ 'PASS' if a.passed else 'FAIL' }}</span></td>
+        <td><a href="{{ url_for('results', attempt_id=a.id) }}" class="view-link">View →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    <p>No {{ exam|upper }} attempts yet. <a href="{{ url_for('index') }}">Start your first quiz!</a></p>
+  </div>
+  {% endif %}
+</div>
+
+{% if attempts %}
+<script src="{{ url_for('static', filename='chartjs.min.js') }}"></script>
+<script>
+const labels = {{ attempts | map(attribute='created_at') | map('string') | list | tojson }};
+const scores = {{ attempts | map(attribute='scaled_score') | list | tojson }};
+const passed = {{ attempts | map(attribute='passed') | list | tojson }};
+const ctx = document.getElementById('scoreChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: labels.map((l,i) => `#${labels.length - i}`).reverse(),
+    datasets: [{
+      label: 'Scaled Score',
+      data: [...scores].reverse(),
+      borderColor: '{{ "#f0c040" if exam == "core1" else "#4ade80" }}',
+      backgroundColor: '{{ "rgba(240,192,64,0.08)" if exam == "core1" else "rgba(74,222,128,0.08)" }}',
+      tension: 0.3,
+      pointBackgroundColor: passed.map(p => p ? '#4ade80' : '#f87171').reverse(),
+      pointRadius: 6, pointHoverRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#ccc', font: { family: 'Space Mono, Courier New, monospace' } } },
+      tooltip: { callbacks: {
+        label: ctx => ` ${ctx.parsed.y}/900  ${passed[labels.length - 1 - ctx.dataIndex] ? '✓ PASS' : '✗ FAIL'}`
+      }}
+    },
+    scales: {
+      y: { min: 100, max: 900,
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: { color: '#999' }
+      },
+      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999' } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

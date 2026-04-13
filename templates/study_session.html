@@ -19,9 +19,9 @@
   </div>
 
   <div class="study-nav">
-    <button class="btn-nav" id="btn-prev" onclick="prevCard()" disabled>← Prev</button>
+    <button class="btn-nav" id="btn-prev" onclick="studyPrev()" disabled>← Prev</button>
     <span class="study-progress-text" id="study-progress">0 / {{ total }} revealed</span>
-    <button class="btn-nav" id="btn-next" onclick="nextCard()">Next →</button>
+    <button class="btn-nav" id="btn-next" onclick="studyNext()">Next →</button>
   </div>
 </div>
 
@@ -31,7 +31,7 @@
     <h2>Session Complete!</h2>
     <p>You reviewed all {{ total }} flashcards.</p>
     <div class="study-done-actions">
-      <a href="{{ url_for('study') }}" class="btn-action secondary">New Session</a>
+      <a href="{{ url_for('study', exam=exam) }}" class="btn-action secondary">New Session</a>
       <a href="{{ url_for('index') }}" class="btn-action primary">Take a Quiz →</a>
     </div>
   </div>
@@ -41,37 +41,67 @@
 {% block scripts %}
 <script>
 const QUESTION_IDS = {{ question_ids | tojson }};
-let currentIndex = 0;
+const EXAM = {{ exam | tojson }};
+let studyIndex = 0;
 let revealed = new Set();
-let cache = {};
+let studyCache = {};
 
-document.addEventListener('DOMContentLoaded', () => loadCard(0));
+document.addEventListener('DOMContentLoaded', () => studyLoadCard(0));
 
-async function loadCard(index) {
-  currentIndex = index;
+async function studyLoadCard(index) {
+  studyIndex = index;
   const qid = QUESTION_IDS[index];
   const area = document.getElementById('question-area');
   area.innerHTML = '<div class="loading-pulse">Loading…</div>';
 
-  if (!cache[qid]) {
-    const res = await fetch(`/api/study/question/${qid}`);
-    cache[qid] = await res.json();
+  if (!studyCache[qid]) {
+    try {
+      const res = await fetch(`/api/study/question/${qid}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      studyCache[qid] = await res.json();
+    } catch(err) {
+      area.innerHTML = `<div style="color:#f87171;padding:1rem;font-family:var(--font-mono);font-size:.85rem">
+        ⚠ Error loading question ${qid}: ${err.message}<br>
+        <button onclick="studyLoadCard(${index})" style="margin-top:.75rem;padding:.4rem .8rem;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">Retry</button>
+      </div>`;
+      return;
+    }
   }
-  const q = cache[qid];
+  const q = studyCache[qid];
+  if (!q || !q.text) {
+    area.innerHTML = '<div style="color:#f87171;padding:1rem">⚠ Question data missing — try reloading the page.</div>';
+    return;
+  }
   const isRevealed = revealed.has(qid);
+  const letters = ['A','B','C','D'];
 
   area.innerHTML = `
     <p class="question-text">${q.text}</p>
-    ${isRevealed ? buildRevealedChoices(q) : `
-      <div class="flashcard-placeholder">
-        <button class="btn-reveal" onclick="revealAnswer(${qid})">Tap to Reveal Answer</button>
-      </div>
-    `}
-    ${isRevealed && q.explanation ? `
-      <div class="explanation" style="margin-top:1rem">
-        <span class="exp-label">💡 Explanation:</span> ${q.explanation}
-      </div>
-    ` : ''}
+    ${q.multi_select ? '<div class="multi-select-hint">Select ' + q.correct_count + ' answers</div>' : ''}
+    ${isRevealed
+      ? `<div class="choices-list revealed-choices">
+          ${q.choices.map((c, i) => `
+            <div class="choice-btn ${c.correct ? 'correct-answer' : 'wrong-answer'}">
+              <span class="choice-letter">${letters[i]}</span>
+              ${c.text}
+              ${c.correct ? '<span class="correct-mark">✓ Correct</span>' : ''}
+            </div>
+          `).join('')}
+        </div>
+        ${q.explanation ? `
+          <div class="explanation" style="margin-top:1rem">
+            <span class="exp-label">💡 Explanation:</span> ${q.explanation}
+          </div>` : ''}
+        <div style="text-align:center;margin-top:1rem">
+          <button class="btn-nav" onclick="studyNext()" style="background:var(--accent);color:#0d0f14;border-color:var(--accent);padding:.5rem 2rem">
+            ${studyIndex === QUESTION_IDS.length - 1 ? 'Finish →' : 'Next Question →'}
+          </button>
+        </div>`
+      : `<div class="flashcard-placeholder">
+          <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Think about your answer first…</p>
+          <button class="btn-reveal" onclick="studyReveal(${qid})">👁 Reveal Answer</button>
+        </div>`
+    }
   `;
 
   document.getElementById('q-counter').textContent = `${index + 1} / ${QUESTION_IDS.length}`;
@@ -80,37 +110,27 @@ async function loadCard(index) {
   document.getElementById('btn-prev').disabled = index === 0;
   document.getElementById('btn-next').textContent = index === QUESTION_IDS.length - 1 ? 'Finish →' : 'Next →';
   document.getElementById('study-progress').textContent = `${revealed.size} / ${QUESTION_IDS.length} revealed`;
+
+  // Scroll to top of question
+  document.getElementById('question-area').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
-function buildRevealedChoices(q) {
-  const letters = ['A','B','C','D'];
-  return `<div class="choices-list revealed-choices">
-    ${q.choices.map((c, i) => `
-      <div class="choice-btn ${c.correct ? 'correct-answer' : 'wrong-answer'}">
-        <span class="choice-letter">${letters[i]}</span>
-        ${c.text}
-        ${c.correct ? '<span class="correct-mark">✓</span>' : ''}
-      </div>
-    `).join('')}
-  </div>`;
-}
-
-function revealAnswer(qid) {
+function studyReveal(qid) {
   revealed.add(qid);
-  loadCard(currentIndex);
+  studyLoadCard(studyIndex);
 }
 
-function nextCard() {
-  if (currentIndex < QUESTION_IDS.length - 1) {
-    loadCard(currentIndex + 1);
+function studyNext() {
+  if (studyIndex < QUESTION_IDS.length - 1) {
+    studyLoadCard(studyIndex + 1);
   } else {
     document.getElementById('quiz-shell').style.display = 'none';
     document.getElementById('study-done').style.display = 'flex';
   }
 }
 
-function prevCard() {
-  if (currentIndex > 0) loadCard(currentIndex - 1);
+function studyPrev() {
+  if (studyIndex > 0) studyLoadCard(studyIndex - 1);
 }
 </script>
 {% endblock %}

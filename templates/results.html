@@ -5,7 +5,7 @@
   <div class="results-hero {{ 'pass-hero' if attempt.passed else 'fail-hero' }}">
     <div class="result-verdict">{{ '✓ PASSED' if attempt.passed else '✗ FAILED' }}</div>
     <div class="result-score-big">{{ attempt.scaled_score }}<span class="score-denom">/900</span></div>
-    <div class="score-threshold">Passing score: 675</div>
+    <div class="score-threshold">Passing score: {{ passing_score }}</div>
     <div class="result-meta-row">
       <span>{{ attempt.correct_answers }}/{{ attempt.total_questions }} correct</span>
       <span>·</span>
@@ -59,7 +59,7 @@
           {% if d.domain %}<span class="qa-domain">{{ d.domain }}</span>{% endif %}
           <span class="qa-chevron">▾</span>
         </div>
-        <div class="qa-body">
+        <div class="qa-body" {% if not d.is_correct %}style="display:block"{% endif %}>
           <div class="ans-row">
             <span class="ans-label">Your answer:</span>
             <span class="ans-text {{ 'correct-text' if d.is_correct else 'wrong-text' }}">{{ d.your_answer }}</span>
@@ -74,6 +74,13 @@
           <div class="explanation">
             <span class="exp-label">💡 Explanation:</span> {{ d.explanation }}
           </div>
+          {% elif not d.is_correct %}
+          <div class="explanation explanation-missing">
+            <span class="exp-label">💡 Explanation:</span>
+            <span style="color:var(--muted);font-style:italic">
+              Review this topic — the correct answer is <strong style="color:#4ade80">{{ d.correct_answer }}</strong>.
+            </span>
+          </div>
           {% endif %}
         </div>
       </div>
@@ -83,7 +90,8 @@
 
   <div class="results-actions">
     <a href="{{ url_for('index') }}" class="btn-action secondary">← Home</a>
-    <a href="{{ url_for('missed') }}" class="btn-action secondary">Missed Questions</a>
+    <a href="{{ url_for('missed', exam=attempt.exam) }}" class="btn-action secondary">Missed Questions</a>
+    <a href="{{ url_for('dashboard') }}" class="btn-action secondary">📊 Dashboard</a>
     <a href="{{ url_for('index') }}" class="btn-action primary">Try Again →</a>
   </div>
 </div>

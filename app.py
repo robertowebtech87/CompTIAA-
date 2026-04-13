@@ -104,9 +104,13 @@ def get_study_question(qid):
     choices = [{'id': c.id, 'text': c.text, 'correct': c.is_correct} for c in q.choices]
     random.shuffle(choices)
     correct_count = sum(1 for c in q.choices if c.is_correct)
+    try:
+        is_multi = bool(q.multi_select)
+    except Exception:
+        is_multi = False
     return jsonify({'id': q.id, 'text': q.text, 'choices': choices,
-                    'domain': q.domain, 'explanation': q.explanation,
-                    'multi_select': bool(q.multi_select), 'correct_count': correct_count})
+                    'domain': q.domain, 'explanation': q.explanation or '',
+                    'multi_select': is_multi, 'correct_count': correct_count})
 
 @app.route('/api/submit', methods=['POST'])
 def submit_quiz():

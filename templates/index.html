@@ -71,6 +71,14 @@
             <span class="slider-val" id="c1-qval">20</span>
           </div>
         </div>
+        <div class="form-row">
+          <label class="form-label">Options</label>
+          <label class="toggle-option">
+            <input type="checkbox" name="per_q_timer" value="1" id="c1-timer-toggle">
+            <span class="toggle-box"></span>
+            <span class="toggle-label">⏱ Per-question timer <span class="toggle-sub">(90 sec each — exam pressure)</span></span>
+          </label>
+        </div>
         <button type="submit" class="btn-start" {% if core1.total_questions == 0 %}disabled{% endif %}>
           Start Core 1 Quiz →
         </button>
@@ -135,6 +143,14 @@
                    oninput="document.getElementById('c2-qval').textContent=this.value">
             <span class="slider-val" id="c2-qval">{{ [core2.total_questions, 20]|min if core2.total_questions > 0 else 0 }}</span>
           </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Options</label>
+          <label class="toggle-option">
+            <input type="checkbox" name="per_q_timer" value="1" id="c2-timer-toggle">
+            <span class="toggle-box"></span>
+            <span class="toggle-label">⏱ Per-question timer <span class="toggle-sub">(90 sec each — exam pressure)</span></span>
+          </label>
         </div>
         <button type="submit" class="btn-start" style="background:var(--accent2);color:#0d0f14"
                 {% if core2.total_questions == 0 %}disabled{% endif %}>

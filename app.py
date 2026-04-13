@@ -68,6 +68,7 @@ def start_quiz():
     num_questions = int(request.form.get('num_questions', 20))
     selected_domains = request.form.getlist('domains')
     exam = request.form.get('exam', 'core1')
+    per_q_timer = request.form.get('per_q_timer') == '1'
 
     query = Question.query.filter_by(active=True, exam=exam)
     if selected_domains and 'all' not in selected_domains:
@@ -86,7 +87,8 @@ def start_quiz():
                            domains_label=domains_label,
                            exam=exam,
                            passing_score=passing_score,
-                           simulation_mode=False)
+                           simulation_mode=False,
+                           per_q_timer=per_q_timer)
 
 @app.route('/api/question/<int:qid>')
 def get_question(qid):

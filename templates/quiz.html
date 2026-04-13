@@ -76,5 +76,7 @@ const TIME_LIMIT    = {{ time_limit }};
 const EXAM          = {{ exam | tojson }};
 const PASSING_SCORE = {{ passing_score }};
 const SIM_MODE      = {{ 'true' if simulation_mode else 'false' }};
+const PER_Q_TIMER   = {{ 'true' if per_q_timer is defined and per_q_timer else 'false' }};
+const PER_Q_SECONDS = 90;
 </script>
 {% endblock %}

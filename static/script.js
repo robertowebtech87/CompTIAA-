@@ -7,6 +7,10 @@ let timerInterval = null;
 let timeElapsed = 0;
 let timeLimitSecs = 0;
 
+// Per-question timer
+let perQInterval = null;
+let perQRemaining = 90;
+
 /* ── Bootstrap ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof QUESTION_IDS === 'undefined') return; // not on quiz page
@@ -109,6 +113,11 @@ async function loadQuestion(index) {
   // Update counter, domain, progress
   document.getElementById('q-counter').textContent = `${index + 1} / ${QUESTION_IDS.length}`;
   document.getElementById('domain-tag').textContent = q.domain || '';
+
+  // Per-question timer
+  if (typeof PER_Q_TIMER !== 'undefined' && PER_Q_TIMER) {
+    startPerQTimer();
+  }
   document.getElementById('progress-bar').style.width = `${((index + 1) / QUESTION_IDS.length) * 100}%`;
 
   // Nav buttons
@@ -122,14 +131,61 @@ async function loadQuestion(index) {
   updateDots();
 }
 
+/* ── Per-Question Timer ──────────────────────────────────────────── */
+function startPerQTimer() {
+  clearInterval(perQInterval);
+  perQRemaining = PER_Q_SECONDS;
+
+  // Create or reset the timer bar
+  let bar = document.getElementById('per-q-bar');
+  if (!bar) {
+    const wrap = document.createElement('div');
+    wrap.className = 'per-q-timer-wrap';
+    wrap.innerHTML = `
+      <div class="per-q-bar-track">
+        <div class="per-q-bar-fill" id="per-q-bar"></div>
+      </div>
+      <span class="per-q-label" id="per-q-label">90s</span>
+    `;
+    const area = document.getElementById('question-area');
+    area.parentNode.insertBefore(wrap, area);
+    bar = document.getElementById('per-q-bar');
+  }
+  bar.style.width = '100%';
+  bar.className = 'per-q-bar-fill';
+  document.getElementById('per-q-label').textContent = `${PER_Q_SECONDS}s`;
+
+  perQInterval = setInterval(() => {
+    perQRemaining--;
+    const pct = (perQRemaining / PER_Q_SECONDS) * 100;
+    bar.style.width = pct + '%';
+    document.getElementById('per-q-label').textContent = `${perQRemaining}s`;
+
+    if (perQRemaining <= 10) bar.classList.add('per-q-warning');
+    if (perQRemaining <= 0) {
+      clearInterval(perQInterval);
+      bar.style.width = '0%';
+      document.getElementById('per-q-label').textContent = '⏰';
+      // Auto advance to next question
+      setTimeout(() => nextQuestion(), 500);
+    }
+  }, 1000);
+}
+
+function stopPerQTimer() {
+  clearInterval(perQInterval);
+}
+
 function selectAnswer(qid, choiceId, btn) {
   answers[qid] = choiceId;
   document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   updateDots();
+  if (typeof PER_Q_TIMER !== 'undefined' && PER_Q_TIMER) stopPerQTimer();
 }
 
 function selectMultiAnswer(qid, choiceId, correctCount, btn) {
+  if (typeof PER_Q_TIMER !== 'undefined' && PER_Q_TIMER) stopPerQTimer();
   if (!Array.isArray(answers[qid])) answers[qid] = [];
   const idx = answers[qid].indexOf(choiceId);
   if (idx === -1) {

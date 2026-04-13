@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
   buildDots();
   loadQuestion(0);
   startTimer();
+
+  // Simulation mode — disable prev button and lock dot navigation
+  if (typeof SIM_MODE !== 'undefined' && SIM_MODE) {
+    const prevBtn = document.getElementById('btn-prev');
+    if (prevBtn) prevBtn.style.display = 'none';
+  }
 });
 
 /* ── Timer ───────────────────────────────────────────────────── */
@@ -43,7 +49,12 @@ function buildDots() {
   QUESTION_IDS.forEach((_, i) => {
     const d = document.createElement('div');
     d.className = 'dot' + (i === 0 ? ' current' : '');
-    d.onclick = () => goToQuestion(i);
+    // In simulation mode dots are display only — no clicking back
+    if (typeof SIM_MODE === 'undefined' || !SIM_MODE) {
+      d.onclick = () => goToQuestion(i);
+    } else {
+      d.style.cursor = 'default';
+    }
     container.appendChild(d);
   });
 }

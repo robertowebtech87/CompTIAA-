@@ -1,11 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Quiz — CompTIA A+ Prep{% endblock %}
+{% block title %}{% if simulation_mode %}Exam Simulation{% else %}Quiz{% endif %} — CompTIA A+ Prep{% endblock %}
+
+{% if simulation_mode %}{% block navbar %}{% endblock %}{% endif %}
+
 {% block content %}
-<div class="quiz-shell">
+<div class="quiz-shell {% if simulation_mode %}sim-mode{% endif %}">
+
+  {% if simulation_mode %}
+  <div class="sim-topbar">
+    <div class="sim-topbar-left">
+      <span class="sim-badge">🎯 EXAM SIMULATION — {{ exam|upper }}</span>
+    </div>
+    <div class="sim-topbar-right">
+      <span style="color:var(--muted);font-size:.78rem;font-family:var(--font-mono)">
+        Pass: {{ passing_score }}/900
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="quiz-header">
     <div class="quiz-meta">
       <span id="q-counter" class="q-counter">1 / {{ total }}</span>
+      {% if not simulation_mode %}
       <span class="domain-tag" id="domain-tag"></span>
+      {% endif %}
     </div>
     <div class="timer-wrap">
       <span class="timer-icon">⏱</span>
@@ -22,23 +41,29 @@
   </div>
 
   <div class="quiz-nav">
+    {% if not simulation_mode %}
     <button class="btn-nav" id="btn-prev" onclick="prevQuestion()" disabled>← Prev</button>
+    {% else %}
+    <div></div>
+    {% endif %}
     <div class="dots" id="dots"></div>
     <button class="btn-nav" id="btn-next" onclick="nextQuestion()">Next →</button>
   </div>
 
   <button class="btn-submit" id="btn-submit" onclick="submitQuiz()" style="display:none">
-    Submit Quiz
+    {% if simulation_mode %}Submit Exam{% else %}Submit Quiz{% endif %}
   </button>
 </div>
 
 <div class="confirm-overlay" id="confirm-overlay" style="display:none">
   <div class="confirm-box">
-    <h3>Submit Quiz?</h3>
+    <h3>{% if simulation_mode %}Submit Exam?{% else %}Submit Quiz?{% endif %}</h3>
     <p id="unanswered-msg"></p>
     <div class="confirm-btns">
       <button class="btn-cancel" onclick="closeConfirm()">Keep Going</button>
-      <button class="btn-confirm" onclick="confirmSubmit()">Submit Now</button>
+      <button class="btn-confirm" onclick="confirmSubmit()">
+        {% if simulation_mode %}Submit Exam{% else %}Submit Now{% endif %}
+      </button>
     </div>
   </div>
 </div>
@@ -46,9 +71,10 @@
 
 {% block scripts %}
 <script>
-const QUESTION_IDS = {{ question_ids | tojson }};
-const TIME_LIMIT   = {{ time_limit }};
-const EXAM         = {{ exam | tojson }};
+const QUESTION_IDS  = {{ question_ids | tojson }};
+const TIME_LIMIT    = {{ time_limit }};
+const EXAM          = {{ exam | tojson }};
 const PASSING_SCORE = {{ passing_score }};
+const SIM_MODE      = {{ 'true' if simulation_mode else 'false' }};
 </script>
 {% endblock %}

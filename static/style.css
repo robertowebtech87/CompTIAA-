@@ -835,3 +835,61 @@ input[type=radio]:checked + .choice-radio-label { border-color: var(--accent); c
   .win-label { min-width: unset; }
   .win-input { width: 100%; }
 }
+
+/* ─── Exam Simulation Mode ───────────────────────────────────────────────── */
+.sim-topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .6rem 1rem;
+  background: rgba(240,192,64,.08);
+  border: 1px solid rgba(240,192,64,.2);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+.sim-badge {
+  font-family: var(--font-mono); font-size: .78rem;
+  color: var(--accent); font-weight: 700; letter-spacing: .04em;
+}
+.sim-mode { border: 1px solid rgba(240,192,64,.15); border-radius: var(--radius); }
+
+/* Simulation landing page */
+.sim-rules-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.sim-rules-title {
+  font-family: var(--font-mono); font-size: .82rem;
+  color: var(--accent); font-weight: 700;
+  margin-bottom: 1rem; letter-spacing: .04em;
+}
+.sim-rules-list { display: flex; flex-direction: column; gap: .6rem; }
+.sim-rule {
+  display: flex; align-items: flex-start; gap: .6rem;
+  font-size: .88rem; color: var(--muted); line-height: 1.4;
+}
+.sim-rule-icon { font-size: .9rem; flex-shrink: 0; margin-top: .05rem; }
+.sim-warning {
+  background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.25);
+  color: #f87171; border-radius: var(--radius); padding: .6rem 1rem;
+  font-size: .83rem; font-family: var(--font-mono); margin-bottom: 1rem;
+}
+.sim-start-btn {
+  width: 100%; text-align: center; font-size: 1rem;
+  background: var(--accent); color: #0d0f14;
+}
+
+/* Hide navbar in simulation mode via JS body class */
+body.sim-active .navbar { display: none !important; }
+body.sim-active .main-content { padding-top: 0; }
+
+/* Simulate nav link highlight */
+.nav-link-sim {
+  color: var(--accent) !important;
+  border: 1px solid rgba(240,192,64,.3);
+  border-radius: 4px;
+  padding: .2rem .6rem !important;
+}
+.nav-link-sim:hover, .nav-link-sim.active {
+  background: rgba(240,192,64,.1);
+  border-color: var(--accent);
+}

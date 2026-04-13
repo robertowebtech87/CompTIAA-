@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Exam Simulation — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:640px">
+
+  <div style="text-align:center;margin-bottom:2rem">
+    <div style="font-size:3rem;margin-bottom:.75rem">🎯</div>
+    <h1 class="page-title" style="margin-bottom:.5rem">Exam Simulation</h1>
+    <p style="color:var(--muted);font-size:.95rem;line-height:1.6">
+      Simulates the real CompTIA A+ exam experience.<br>
+      90 questions · 90 minute timer · No going back · No skipping.
+    </p>
+  </div>
+
+  <!-- Exam selector -->
+  <div class="exam-tabs" style="margin-bottom:2rem">
+    <button class="exam-tab {% if exam == 'core1' %}active{% endif %}" id="tab-core1" onclick="selectExam('core1')">
+      <span class="exam-tab-title">Core 1</span>
+      <span class="exam-tab-sub">220-1101 · Pass: 675/900</span>
+    </button>
+    <button class="exam-tab {% if exam == 'core2' %}active{% endif %}" id="tab-core2" onclick="selectExam('core2')">
+      <span class="exam-tab-title">Core 2</span>
+      <span class="exam-tab-sub">220-1102 · Pass: 700/900</span>
+    </button>
+  </div>
+
+  <!-- Exam rules box -->
+  <div class="sim-rules-box">
+    <div class="sim-rules-title">⚠️ Exam Rules — Read Before Starting</div>
+    <div class="sim-rules-list">
+      <div class="sim-rule"><span class="sim-rule-icon">🔒</span>Navigation is locked — you cannot go back to previous questions</div>
+      <div class="sim-rule"><span class="sim-rule-icon">⏱</span>90 minute countdown — quiz auto-submits when time runs out</div>
+      <div class="sim-rule"><span class="sim-rule-icon">📋</span>90 questions randomly selected from all active categories</div>
+      <div class="sim-rule"><span class="sim-rule-icon">🚫</span>The navbar is hidden — stay focused until you submit</div>
+      <div class="sim-rule"><span class="sim-rule-icon">✅</span>Pass score: <span id="pass-score-label">675/900</span> (scaled)</div>
+    </div>
+  </div>
+
+  <!-- Question count warning if not enough -->
+  <div id="core1-warning" style="display:{% if core1_count < 90 %}block{% else %}none{% endif %}">
+    <div class="sim-warning">
+      Only {{ core1_count }} Core 1 questions available — simulation will use all of them.
+    </div>
+  </div>
+  <div id="core2-warning" style="display:{% if core2_count < 90 %}block{% else %}none{% endif %}">
+    <div class="sim-warning">
+      Only {{ core2_count }} Core 2 questions available — simulation will use all of them.
+    </div>
+  </div>
+
+  <!-- Start button -->
+  <form action="{{ url_for('simulate') }}" method="POST" id="sim-form">
+    <input type="hidden" name="exam" id="exam-input" value="{{ exam }}">
+    <button type="button" class="btn-start sim-start-btn" onclick="confirmStart()">
+      Start Core 1 Simulation →
+    </button>
+  </form>
+
+  <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:1rem">
+    Make sure you have 90 uninterrupted minutes before starting.
+  </p>
+</div>
+
+<!-- Confirm dialog -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none">
+  <div class="confirm-box" style="max-width:440px">
+    <h3 style="margin-bottom:.75rem">Ready to begin?</h3>
+    <p style="color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:1.25rem">
+      You are about to start the <strong id="confirm-exam-label">Core 1</strong> simulation.<br>
+      <strong>90 questions · 90 minutes · No going back.</strong><br><br>
+      Once started the timer cannot be paused. Make sure you are ready.
+    </p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">Not Yet</button>
+      <button class="btn-confirm" onclick="document.getElementById('sim-form').submit()">
+        Start Simulation
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentExam = '{{ exam }}';
+
+function selectExam(exam) {
+  currentExam = exam;
+  document.getElementById('exam-input').value = exam;
+  document.getElementById('tab-core1').classList.toggle('active', exam === 'core1');
+  document.getElementById('tab-core2').classList.toggle('active', exam === 'core2');
+  document.getElementById('core1-warning').style.display = exam === 'core1' && {{ core1_count }} < 90 ? 'block' : 'none';
+  document.getElementById('core2-warning').style.display = exam === 'core2' && {{ core2_count }} < 90 ? 'block' : 'none';
+  document.querySelector('.sim-start-btn').textContent = `Start ${exam === 'core1' ? 'Core 1' : 'Core 2'} Simulation →`;
+  document.getElementById('pass-score-label').textContent = exam === 'core1' ? '675/900' : '700/900';
+}
+
+function confirmStart() {
+  document.getElementById('confirm-exam-label').textContent = currentExam === 'core1' ? 'Core 1 (220-1101)' : 'Core 2 (220-1102)';
+  document.getElementById('confirm-overlay').style.display = 'flex';
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').style.display = 'none';
+}
+</script>
+{% endblock %}

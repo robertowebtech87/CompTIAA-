@@ -85,7 +85,8 @@ def start_quiz():
                            time_limit=len(question_ids) * 60,
                            domains_label=domains_label,
                            exam=exam,
-                           passing_score=passing_score)
+                           passing_score=passing_score,
+                           simulation_mode=False)
 
 @app.route('/api/question/<int:qid>')
 def get_question(qid):
@@ -300,7 +301,8 @@ def missed_quiz():
                            total=len(question_ids),
                            time_limit=len(question_ids) * 60,
                            domains_label='Missed Questions',
-                           exam=exam, passing_score=passing_score)
+                           exam=exam, passing_score=passing_score,
+                           simulation_mode=False)
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
@@ -375,6 +377,37 @@ def toggle_question(qid):
     db.session.commit()
     return jsonify({'active': q.active})
 
+
+
+# ── Exam Simulation Mode ──────────────────────────────────────────────────────
+
+@app.route('/quiz/simulate', methods=['GET', 'POST'])
+def simulate():
+    exam = request.args.get('exam', request.form.get('exam', 'core1'))
+    if request.method == 'GET':
+        core1_count = Question.query.filter_by(active=True, exam='core1').count()
+        core2_count = Question.query.filter_by(active=True, exam='core2').count()
+        return render_template('simulate.html',
+                               exam=exam,
+                               core1_count=core1_count,
+                               core2_count=core2_count,
+                               simulation_mode=False)
+
+    # POST — start the simulation
+    questions = Question.query.filter_by(active=True, exam=exam).all()
+    if not questions:
+        return redirect(url_for('simulate'))
+    sample = random.sample(questions, min(90, len(questions)))
+    question_ids = [q.id for q in sample]
+    passing_score = 675 if exam == 'core1' else 700
+    return render_template('quiz.html',
+                           question_ids=question_ids,
+                           total=len(question_ids),
+                           time_limit=90 * 60,
+                           domains_label='Exam Simulation',
+                           exam=exam,
+                           passing_score=passing_score,
+                           simulation_mode=True)
 
 # ── PBQ Labs ──────────────────────────────────────────────────────────────────
 

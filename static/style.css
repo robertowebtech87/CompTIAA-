@@ -893,3 +893,204 @@ body.sim-active .main-content { padding-top: 0; }
   background: rgba(240,192,64,.1);
   border-color: var(--accent);
 }
+
+/* ─── Progress Dashboard ─────────────────────────────────────────────────── */
+.dash-wrap { max-width: 1100px; }
+
+.dash-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;
+}
+.dash-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+
+/* Top row */
+.dash-top-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Dash cards */
+.dash-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+}
+.dash-card-title {
+  font-family: var(--font-mono); font-size: .72rem;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: .75rem;
+}
+
+/* Streak card */
+.streak-card {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: .35rem;
+}
+.streak-fire { border-color: rgba(251,146,60,.4); background: rgba(251,146,60,.05); }
+.streak-icon { font-size: 2rem; }
+.streak-num {
+  font-family: var(--font-mono); font-size: 2.5rem;
+  font-weight: 900; color: var(--accent); line-height: 1;
+}
+.streak-label {
+  font-family: var(--font-mono); font-size: .75rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+}
+.streak-sub { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+
+/* Stat grid */
+.dash-stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+.dash-stat {
+  display: flex; flex-direction: column; gap: .15rem;
+  background: rgba(255,255,255,.03); border-radius: 6px;
+  padding: .6rem .75rem;
+}
+.dash-stat-num {
+  font-family: var(--font-mono); font-size: 1.3rem;
+  font-weight: 700; color: var(--text);
+}
+.dash-stat-label {
+  font-family: var(--font-mono); font-size: .68rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* Heatmap */
+.heatmap {
+  display: grid; grid-template-columns: repeat(15, 1fr);
+  gap: 3px; margin-bottom: .5rem;
+}
+.heat-cell {
+  aspect-ratio: 1; border-radius: 2px;
+}
+.heat-0 { background: rgba(255,255,255,.05); }
+.heat-1 { background: rgba(240,192,64,.2); }
+.heat-2 { background: rgba(240,192,64,.45); }
+.heat-3 { background: rgba(240,192,64,.7); }
+.heat-4 { background: var(--accent); }
+.heatmap-legend {
+  display: flex; align-items: center; gap: 4px;
+  justify-content: flex-end;
+}
+.heatmap-legend .heat-cell { width: 10px; height: 10px; }
+
+/* Exam cards */
+.dash-exams-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.dash-exam-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+}
+.dash-exam-header {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 1rem;
+}
+.dash-exam-badge {
+  font-family: var(--font-mono); font-size: .72rem;
+  font-weight: 700; padding: .2rem .55rem;
+  border-radius: 3px; letter-spacing: .06em;
+}
+.dash-exam-badge.core1 { background: rgba(240,192,64,.15); color: var(--accent); }
+.dash-exam-badge.core2 { background: rgba(74,222,128,.15); color: var(--accent2); }
+
+/* Score gauge */
+.exam-score-row { margin-bottom: .5rem; }
+.score-gauge {
+  height: 8px; background: rgba(255,255,255,.07);
+  border-radius: 4px; overflow: hidden; margin-bottom: .4rem;
+}
+.score-gauge-fill {
+  height: 100%; background: var(--accent);
+  border-radius: 4px; transition: width .6s ease;
+}
+.score-gauge-label {
+  font-family: var(--font-mono); font-size: .8rem; color: var(--muted);
+  display: flex; align-items: center; gap: .5rem;
+}
+
+/* Readiness bar */
+.readiness-bar-wrap { margin: 1rem 0; }
+.readiness-label {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: .75rem;
+  color: var(--muted); margin-bottom: .4rem;
+}
+.readiness-pct { color: var(--text); font-weight: 700; }
+.readiness-track {
+  height: 10px; background: rgba(255,255,255,.07);
+  border-radius: 5px; overflow: visible; position: relative; margin-bottom: .4rem;
+}
+.readiness-fill {
+  height: 100%; border-radius: 5px;
+  transition: width .8s ease;
+}
+.readiness-fill.ready   { background: #4ade80; }
+.readiness-fill.close   { background: var(--accent); }
+.readiness-fill.notready { background: #f87171; }
+.readiness-marker {
+  position: absolute; top: -3px; width: 2px; height: 16px;
+  background: rgba(255,255,255,.4); border-radius: 1px;
+}
+.readiness-hint {
+  font-family: var(--font-mono); font-size: .75rem; color: var(--muted);
+}
+
+/* Domain bars */
+.dash-domains { margin-top: .85rem; }
+.dash-domain-title {
+  font-family: var(--font-mono); font-size: .7rem;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .06em; margin-bottom: .5rem;
+}
+.dash-domain-row {
+  display: flex; align-items: center; gap: .6rem; margin-bottom: .4rem;
+}
+.dash-domain-name {
+  font-size: .78rem; color: var(--muted);
+  min-width: 110px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.dash-domain-bar-track {
+  flex: 1; height: 6px; background: rgba(255,255,255,.07);
+  border-radius: 3px; overflow: hidden;
+}
+.dash-domain-bar-fill {
+  height: 100%; border-radius: 3px;
+}
+.dash-domain-bar-fill.weak   { background: #f87171; }
+.dash-domain-bar-fill.strong { background: #4ade80; }
+.dash-domain-pct {
+  font-family: var(--font-mono); font-size: .72rem; min-width: 35px; text-align: right;
+}
+.dash-domain-pct.weak   { color: #f87171; }
+.dash-domain-pct.strong { color: #4ade80; }
+
+/* Empty state */
+.dash-empty {
+  text-align: center; padding: 2rem 1rem;
+  color: var(--muted); font-size: .88rem; line-height: 1.7;
+}
+
+/* Exam links */
+.dash-exam-links {
+  display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem;
+  padding-top: 1rem; border-top: 1px solid var(--border);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .dash-top-row { grid-template-columns: 1fr 1fr; }
+  .streak-card { grid-column: span 2; flex-direction: row; gap: 1rem; padding: 1rem 1.5rem; }
+  .dash-exams-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .dash-top-row { grid-template-columns: 1fr; }
+  .streak-card { grid-column: span 1; }
+  .dash-header { flex-direction: column; }
+}

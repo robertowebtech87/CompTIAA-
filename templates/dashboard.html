@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% block title %}Progress Dashboard — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap dash-wrap">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div>
+      <h1 class="page-title" style="margin-bottom:.25rem">Progress Dashboard</h1>
+      <p style="color:var(--muted);font-size:.88rem">{{ today.strftime('%A, %d %B %Y') }}</p>
+    </div>
+    <div class="dash-actions">
+      <a href="{{ url_for('simulate', exam='core1') }}" class="btn-action primary" style="font-size:.82rem;padding:.45rem 1rem">🎯 Simulate</a>
+      <a href="{{ url_for('index') }}" class="btn-action secondary" style="font-size:.82rem;padding:.45rem 1rem">Start Quiz</a>
+    </div>
+  </div>
+
+  <!-- Top stats row -->
+  <div class="dash-top-row">
+
+    <!-- Streak card -->
+    <div class="dash-card streak-card {% if streak >= 7 %}streak-fire{% endif %}">
+      <div class="streak-icon">{{ '🔥' if streak >= 3 else '📅' }}</div>
+      <div class="streak-num">{{ streak }}</div>
+      <div class="streak-label">Day Streak</div>
+      {% if streak == 0 %}
+      <div class="streak-sub">Study today to start your streak!</div>
+      {% elif streak < 3 %}
+      <div class="streak-sub">Keep going!</div>
+      {% elif streak < 7 %}
+      <div class="streak-sub">Great consistency!</div>
+      {% else %}
+      <div class="streak-sub">You're on fire! 🔥</div>
+      {% endif %}
+    </div>
+
+    <!-- Total stats -->
+    <div class="dash-card">
+      <div class="dash-card-title">Overall Progress</div>
+      <div class="dash-stat-grid">
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ total_attempts }}</span>
+          <span class="dash-stat-label">Total Quizzes</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ total_questions_done }}</span>
+          <span class="dash-stat-label">Questions Done</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ c1_available + c2_available }}</span>
+          <span class="dash-stat-label">Questions Available</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core1.passed_count + core2.passed_count }}</span>
+          <span class="dash-stat-label">Passing Scores</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity heatmap -->
+    <div class="dash-card">
+      <div class="dash-card-title">Last 30 Days Activity</div>
+      <div class="heatmap">
+        {% for day in activity %}
+        <div class="heat-cell
+          {% if day.count == 0 %}heat-0
+          {% elif day.count < 20 %}heat-1
+          {% elif day.count < 50 %}heat-2
+          {% elif day.count < 90 %}heat-3
+          {% else %}heat-4{% endif %}"
+          title="{{ day.date }}: {{ day.count }} questions"></div>
+        {% endfor %}
+      </div>
+      <div class="heatmap-legend">
+        <span style="color:var(--muted);font-size:.72rem">Less</span>
+        <div class="heat-cell heat-0"></div>
+        <div class="heat-cell heat-1"></div>
+        <div class="heat-cell heat-2"></div>
+        <div class="heat-cell heat-3"></div>
+        <div class="heat-cell heat-4"></div>
+        <span style="color:var(--muted);font-size:.72rem">More</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core 1 and Core 2 side by side -->
+  <div class="dash-exams-row">
+
+    <!-- Core 1 -->
+    <div class="dash-exam-card">
+      <div class="dash-exam-header">
+        <div>
+          <span class="dash-exam-badge core1">CORE 1</span>
+          <span style="font-family:var(--font-mono);font-size:.75rem;color:var(--muted);margin-left:.5rem">220-1101</span>
+        </div>
+        <a href="{{ url_for('history', exam='core1') }}" class="view-link" style="font-size:.78rem">Full History →</a>
+      </div>
+
+      {% if core1.total_attempts > 0 %}
+      <!-- Score gauge -->
+      <div class="exam-score-row">
+        <div class="score-gauge">
+          <div class="score-gauge-fill" style="width:{{ [core1.best_score, 100]|min }}%"></div>
+        </div>
+        <span class="score-gauge-label">Best: {{ core1.best_scaled }}/900
+          <span class="badge-sm {{ 'pass' if core1.best_scaled >= 675 else 'fail' }}">
+            {{ 'PASS' if core1.best_scaled >= 675 else 'FAIL' }}
+          </span>
+        </span>
+      </div>
+
+      <div class="dash-stat-grid" style="margin:1rem 0">
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core1.total_attempts }}</span>
+          <span class="dash-stat-label">Quizzes</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core1.overall_accuracy }}%</span>
+          <span class="dash-stat-label">Accuracy</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core1.sim_attempts }}</span>
+          <span class="dash-stat-label">Simulations</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num" style="color:{% if core1.last_score >= 75 %}#4ade80{% elif core1.last_score >= 60 %}var(--accent){% else %}#f87171{% endif %}">
+            {{ core1.last_score }}%
+          </span>
+          <span class="dash-stat-label">Last Score</span>
+        </div>
+      </div>
+
+      <!-- Readiness indicator -->
+      <div class="readiness-bar-wrap">
+        <div class="readiness-label">
+          Exam Readiness
+          <span class="readiness-pct">{{ core1.overall_accuracy }}%</span>
+        </div>
+        <div class="readiness-track">
+          <div class="readiness-fill
+            {% if core1.overall_accuracy >= 80 %}ready
+            {% elif core1.overall_accuracy >= 65 %}close
+            {% else %}notready{% endif %}"
+            style="width:{{ [core1.overall_accuracy, 100]|min }}%"></div>
+          <div class="readiness-marker" style="left:80%" title="Target: 80%"></div>
+        </div>
+        <div class="readiness-hint">
+          {% if core1.overall_accuracy >= 80 %}
+          ✅ Ready to book Core 1!
+          {% elif core1.overall_accuracy >= 65 %}
+          🟡 Getting close — keep practicing
+          {% else %}
+          🔴 Keep studying — aim for 80%+
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Weak domains -->
+      {% if c1_weak %}
+      <div class="dash-domains">
+        <div class="dash-domain-title">⚠️ Needs Work</div>
+        {% for d in c1_weak %}
+        <div class="dash-domain-row">
+          <span class="dash-domain-name">{{ d.domain }}</span>
+          <div class="dash-domain-bar-track">
+            <div class="dash-domain-bar-fill weak" style="width:{{ d.percent }}%"></div>
+          </div>
+          <span class="dash-domain-pct weak">{{ d.percent }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if c1_strong %}
+      <div class="dash-domains">
+        <div class="dash-domain-title">✅ Strong Areas</div>
+        {% for d in c1_strong %}
+        <div class="dash-domain-row">
+          <span class="dash-domain-name">{{ d.domain }}</span>
+          <div class="dash-domain-bar-track">
+            <div class="dash-domain-bar-fill strong" style="width:{{ d.percent }}%"></div>
+          </div>
+          <span class="dash-domain-pct strong">{{ d.percent }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Score trend chart -->
+      {% if core1.score_trend|length > 1 %}
+      <div style="margin-top:1rem">
+        <div class="dash-card-title" style="margin-bottom:.5rem">Score Trend</div>
+        <canvas id="c1-chart" height="80"></canvas>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="dash-empty">No Core 1 attempts yet.<br>
+        <a href="{{ url_for('index') }}" style="color:var(--accent)">Start your first quiz →</a>
+      </div>
+      {% endif %}
+
+      <div class="dash-exam-links">
+        <a href="{{ url_for('study', exam='core1') }}" class="exam-action-link">📖 Study</a>
+        <a href="{{ url_for('missed', exam='core1') }}" class="exam-action-link">❌ Missed</a>
+        <a href="{{ url_for('pbq', exam='core1') }}" class="exam-action-link">🧪 Labs</a>
+        <a href="{{ url_for('simulate', exam='core1') }}" class="exam-action-link" style="color:var(--accent)">🎯 Simulate</a>
+      </div>
+    </div>
+
+    <!-- Core 2 -->
+    <div class="dash-exam-card">
+      <div class="dash-exam-header">
+        <div>
+          <span class="dash-exam-badge core2">CORE 2</span>
+          <span style="font-family:var(--font-mono);font-size:.75rem;color:var(--muted);margin-left:.5rem">220-1102</span>
+        </div>
+        <a href="{{ url_for('history', exam='core2') }}" class="view-link" style="font-size:.78rem">Full History →</a>
+      </div>
+
+      {% if core2.total_attempts > 0 %}
+      <div class="exam-score-row">
+        <div class="score-gauge">
+          <div class="score-gauge-fill" style="width:{{ [core2.best_score, 100]|min }}%;background:var(--accent2)"></div>
+        </div>
+        <span class="score-gauge-label">Best: {{ core2.best_scaled }}/900
+          <span class="badge-sm {{ 'pass' if core2.best_scaled >= 700 else 'fail' }}">
+            {{ 'PASS' if core2.best_scaled >= 700 else 'FAIL' }}
+          </span>
+        </span>
+      </div>
+
+      <div class="dash-stat-grid" style="margin:1rem 0">
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core2.total_attempts }}</span>
+          <span class="dash-stat-label">Quizzes</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core2.overall_accuracy }}%</span>
+          <span class="dash-stat-label">Accuracy</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num">{{ core2.sim_attempts }}</span>
+          <span class="dash-stat-label">Simulations</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-num" style="color:{% if core2.last_score >= 75 %}#4ade80{% elif core2.last_score >= 60 %}var(--accent){% else %}#f87171{% endif %}">
+            {{ core2.last_score }}%
+          </span>
+          <span class="dash-stat-label">Last Score</span>
+        </div>
+      </div>
+
+      <div class="readiness-bar-wrap">
+        <div class="readiness-label">
+          Exam Readiness
+          <span class="readiness-pct">{{ core2.overall_accuracy }}%</span>
+        </div>
+        <div class="readiness-track">
+          <div class="readiness-fill
+            {% if core2.overall_accuracy >= 80 %}ready
+            {% elif core2.overall_accuracy >= 65 %}close
+            {% else %}notready{% endif %}"
+            style="width:{{ [core2.overall_accuracy, 100]|min }}%;background:{% if core2.overall_accuracy >= 80 %}#4ade80{% elif core2.overall_accuracy >= 65 %}var(--accent){% else %}#f87171{% endif %}"></div>
+          <div class="readiness-marker" style="left:80%" title="Target: 80%"></div>
+        </div>
+        <div class="readiness-hint">
+          {% if core2.overall_accuracy >= 80 %}
+          ✅ Ready to book Core 2!
+          {% elif core2.overall_accuracy >= 65 %}
+          🟡 Getting close — keep practicing
+          {% else %}
+          🔴 Keep studying — aim for 80%+
+          {% endif %}
+        </div>
+      </div>
+
+      {% if c2_weak %}
+      <div class="dash-domains">
+        <div class="dash-domain-title">⚠️ Needs Work</div>
+        {% for d in c2_weak %}
+        <div class="dash-domain-row">
+          <span class="dash-domain-name">{{ d.domain }}</span>
+          <div class="dash-domain-bar-track">
+            <div class="dash-domain-bar-fill weak" style="width:{{ d.percent }}%"></div>
+          </div>
+          <span class="dash-domain-pct weak">{{ d.percent }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if c2_strong %}
+      <div class="dash-domains">
+        <div class="dash-domain-title">✅ Strong Areas</div>
+        {% for d in c2_strong %}
+        <div class="dash-domain-row">
+          <span class="dash-domain-name">{{ d.domain }}</span>
+          <div class="dash-domain-bar-track">
+            <div class="dash-domain-bar-fill strong" style="width:{{ d.percent }}%"></div>
+          </div>
+          <span class="dash-domain-pct strong">{{ d.percent }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if core2.score_trend|length > 1 %}
+      <div style="margin-top:1rem">
+        <div class="dash-card-title" style="margin-bottom:.5rem">Score Trend</div>
+        <canvas id="c2-chart" height="80"></canvas>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="dash-empty">No Core 2 attempts yet.<br>
+        <a href="{{ url_for('index') }}" style="color:var(--accent2)">Start your first quiz →</a>
+      </div>
+      {% endif %}
+
+      <div class="dash-exam-links">
+        <a href="{{ url_for('study', exam='core2') }}" class="exam-action-link">📖 Study</a>
+        <a href="{{ url_for('missed', exam='core2') }}" class="exam-action-link">❌ Missed</a>
+        <a href="{{ url_for('pbq', exam='core2') }}" class="exam-action-link">🧪 Labs</a>
+        <a href="{{ url_for('simulate', exam='core2') }}" class="exam-action-link" style="color:var(--accent2)">🎯 Simulate</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='chartjs.min.js') }}"></script>
+<script>
+function makeChart(id, labels, data, color) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        borderColor: color,
+        backgroundColor: color + '18',
+        tension: 0.35,
+        pointRadius: 4,
+        pointBackgroundColor: data.map(v => v >= (color === '#f0c040' ? 675 : 700) ? '#4ade80' : '#f87171'),
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          min: 100, max: 900,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#666', font: { size: 10 } }
+        },
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#666', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+{% if core1.score_trend|length > 1 %}
+makeChart('c1-chart',
+  {{ core1.dates_trend | tojson }},
+  {{ core1.score_trend | tojson }},
+  '#f0c040'
+);
+{% endif %}
+
+{% if core2.score_trend|length > 1 %}
+makeChart('c2-chart',
+  {{ core2.dates_trend | tojson }},
+  {{ core2.score_trend | tojson }},
+  '#4ade80'
+);
+{% endif %}
+</script>
+{% endblock %}
+{% endblock %}

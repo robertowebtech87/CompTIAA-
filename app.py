@@ -379,6 +379,112 @@ def toggle_question(qid):
 
 
 
+
+# ── Progress Dashboard ────────────────────────────────────────────────────────
+
+@app.route('/dashboard')
+def dashboard():
+    from datetime import date, timedelta
+
+    # ── Study Streak ──────────────────────────────────────────────────────────
+    all_attempts = QuizAttempt.query.order_by(QuizAttempt.created_at.desc()).all()
+    study_days = sorted(set(a.created_at.date() for a in all_attempts), reverse=True)
+    streak = 0
+    today = date.today()
+    check = today
+    for d in study_days:
+        if d == check or d == check - timedelta(days=1):
+            streak += 1
+            check = d
+        else:
+            break
+    # If studied yesterday but not today, still show streak
+    if study_days and study_days[0] < today - timedelta(days=1):
+        streak = 0
+
+    # ── Per-exam stats ────────────────────────────────────────────────────────
+    def exam_stats(exam):
+        attempts = QuizAttempt.query.filter_by(exam=exam).order_by(QuizAttempt.created_at).all()
+        if not attempts:
+            return {
+                'total_attempts': 0, 'total_questions': 0,
+                'overall_accuracy': 0, 'best_score': 0,
+                'best_scaled': 0, 'passed_count': 0,
+                'last_score': 0, 'last_scaled': 0,
+                'sim_attempts': 0, 'sim_best': 0,
+                'score_trend': [], 'dates_trend': [],
+                'passing_score': 675 if exam == 'core1' else 700
+            }
+        total_q = sum(a.total_questions for a in attempts)
+        total_correct = sum(a.correct_answers for a in attempts)
+        accuracy = round(total_correct / total_q * 100, 1) if total_q else 0
+        best = max(a.scaled_score for a in attempts)
+        passed = sum(1 for a in attempts if a.passed)
+        last = attempts[-1]
+        sims = [a for a in attempts if a.total_questions >= 80]
+        # Score trend — last 10 attempts
+        recent = attempts[-10:]
+        return {
+            'total_attempts': len(attempts),
+            'total_questions': total_q,
+            'overall_accuracy': accuracy,
+            'best_score': round(max(a.score_percent for a in attempts), 1),
+            'best_scaled': best,
+            'passed_count': passed,
+            'last_score': round(last.score_percent, 1),
+            'last_scaled': last.scaled_score,
+            'sim_attempts': len(sims),
+            'sim_best': max((a.scaled_score for a in sims), default=0),
+            'score_trend': [a.scaled_score for a in recent],
+            'dates_trend': [a.created_at.strftime('%d %b') for a in recent],
+            'passing_score': 675 if exam == 'core1' else 700
+        }
+
+    core1 = exam_stats('core1')
+    core2 = exam_stats('core2')
+
+    # ── Domain weakness per exam ──────────────────────────────────────────────
+    def domain_summary(exam):
+        stats = get_domain_stats(exam=exam)
+        if not stats:
+            return [], []
+        weak = [s for s in stats if s['total'] >= 5][:3]
+        strong = [s for s in sorted(stats, key=lambda x: x['percent'], reverse=True) if s['total'] >= 5][:3]
+        return weak, strong
+
+    c1_weak, c1_strong = domain_summary('core1')
+    c2_weak, c2_strong = domain_summary('core2')
+
+    # ── Activity heatmap — last 30 days ───────────────────────────────────────
+    last_30 = {}
+    for i in range(30):
+        d = today - timedelta(days=i)
+        last_30[d] = 0
+    for a in all_attempts:
+        d = a.created_at.date()
+        if d in last_30:
+            last_30[d] += a.total_questions
+
+    activity = [{'date': str(d), 'count': last_30[d]}
+                for d in sorted(last_30.keys())]
+
+    # ── Total questions available ─────────────────────────────────────────────
+    c1_available = Question.query.filter_by(active=True, exam='core1').count()
+    c2_available = Question.query.filter_by(active=True, exam='core2').count()
+
+    return render_template('dashboard.html',
+        streak=streak,
+        today=today,
+        core1=core1, core2=core2,
+        c1_weak=c1_weak, c1_strong=c1_strong,
+        c2_weak=c2_weak, c2_strong=c2_strong,
+        activity=activity,
+        c1_available=c1_available,
+        c2_available=c2_available,
+        total_attempts=len(all_attempts),
+        total_questions_done=sum(a.total_questions for a in all_attempts)
+    )
+
 # ── Exam Simulation Mode ──────────────────────────────────────────────────────
 
 @app.route('/quiz/simulate', methods=['GET', 'POST'])

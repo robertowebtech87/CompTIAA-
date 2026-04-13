@@ -83,6 +83,19 @@
     </div>
   </div>
 
+  <!-- Spaced Repetition Due Widget -->
+  {% if c1_due > 0 or c2_due > 0 %}
+  <div class="sr-due-banner">
+    <span class="sr-due-icon">🧠</span>
+    <div class="sr-due-text">
+      <strong>Reviews due today:</strong>
+      {% if c1_due > 0 %}<span class="sr-due-chip core1">{{ c1_due }} Core 1</span>{% endif %}
+      {% if c2_due > 0 %}<span class="sr-due-chip core2">{{ c2_due }} Core 2</span>{% endif %}
+    </div>
+    <a href="{{ url_for('review') }}" class="btn-action primary" style="font-size:.8rem;padding:.4rem 1rem;white-space:nowrap">Start Review →</a>
+  </div>
+  {% endif %}
+
   <!-- Core 1 and Core 2 side by side -->
   <div class="dash-exams-row">
 

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Spaced Review — CompTIA A+ Prep{% endblock %}
+{% block content %}
+<div class="page-wrap" style="max-width:680px">
+
+  <h1 class="page-title">🧠 Spaced Repetition Review</h1>
+  <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">
+    Questions are shown based on how well you know them.
+    Wrong answers come back tomorrow. Correct answers come back in days or weeks.
+    Study smarter — not more.
+  </p>
+
+  <!-- Exam tabs -->
+  <div class="exam-tabs" style="margin-bottom:1.75rem">
+    <button class="exam-tab {% if exam == 'core1' %}active{% endif %}"
+            onclick="window.location='{{ url_for('review', exam='core1') }}'">
+      <span class="exam-tab-title">Core 1</span>
+      <span class="exam-tab-sub">220-1101</span>
+    </button>
+    <button class="exam-tab {% if exam == 'core2' %}active{% endif %}"
+            onclick="window.location='{{ url_for('review', exam='core2') }}'">
+      <span class="exam-tab-title">Core 2</span>
+      <span class="exam-tab-sub">220-1102</span>
+    </button>
+  </div>
+
+  <!-- Progress overview -->
+  <div class="sr-progress-box">
+    <div class="sr-progress-row">
+      <span class="sr-progress-label">Questions in review system</span>
+      <span class="sr-progress-val">{{ total_in_sr }} / {{ total_q }}</span>
+    </div>
+    <div class="sr-bar-track">
+      <div class="sr-bar-fill" style="width:{{ (total_in_sr / total_q * 100) | round if total_q else 0 }}%"></div>
+    </div>
+    <div class="sr-progress-hint">
+      {% set pct = (total_in_sr / total_q * 100) | round if total_q else 0 %}
+      {{ pct }}% of {{ exam|upper }} questions added to your review schedule
+    </div>
+  </div>
+
+  <!-- Due today card -->
+  <div class="sr-card {% if due_count > 0 %}sr-card-due{% endif %}">
+    <div class="sr-card-header">
+      <div>
+        <div class="sr-card-title">📋 Due Today</div>
+        <div class="sr-card-sub">Questions scheduled for review today</div>
+      </div>
+      <div class="sr-card-count {% if due_count > 0 %}sr-count-due{% endif %}">
+        {{ due_count }}
+      </div>
+    </div>
+    {% if due_count > 0 %}
+    <form action="{{ url_for('start_review') }}" method="POST">
+      <input type="hidden" name="exam" value="{{ exam }}">
+      <input type="hidden" name="mode" value="due">
+      <button type="submit" class="btn-start" style="margin-top:1rem;width:100%">
+        Start Review — {{ due_count }} questions →
+      </button>
+    </form>
+    {% else %}
+    <div class="sr-empty">
+      {% if total_in_sr == 0 %}
+      No questions added yet — start a quiz to begin building your review schedule!
+      {% else %}
+      ✅ All caught up! No reviews due today.
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- New questions card -->
+  <div class="sr-card">
+    <div class="sr-card-header">
+      <div>
+        <div class="sr-card-title">✨ Learn New Questions</div>
+        <div class="sr-card-sub">Add up to 20 new questions to your review schedule</div>
+      </div>
+      <div class="sr-card-count">{{ new_count }}</div>
+    </div>
+    {% if new_count > 0 %}
+    <form action="{{ url_for('start_review') }}" method="POST">
+      <input type="hidden" name="exam" value="{{ exam }}">
+      <input type="hidden" name="mode" value="new">
+      <button type="submit" class="btn-action primary" style="margin-top:1rem">
+        Learn {{ [new_count, 20]|min }} New Questions →
+      </button>
+    </form>
+    {% else %}
+    <div class="sr-empty">🎓 You've added all {{ exam|upper }} questions to your schedule!</div>
+    {% endif %}
+  </div>
+
+  <!-- Upcoming reviews -->
+  {% if upcoming %}
+  <div class="sr-card">
+    <div class="sr-card-title" style="margin-bottom:1rem">📅 Coming Up</div>
+    {% for sr, q in upcoming %}
+    <div class="sr-upcoming-row">
+      <span class="sr-upcoming-date
+        {% if sr.next_review == today %}sr-due-today
+        {% elif (sr.next_review - today).days == 1 %}sr-due-tomorrow
+        {% else %}sr-due-later{% endif %}">
+        {% if sr.next_review == today %}Today
+        {% elif (sr.next_review - today).days == 1 %}Tomorrow
+        {% else %}{{ sr.next_review.strftime('%d %b') }}{% endif %}
+      </span>
+      <span class="sr-upcoming-q">{{ q.text[:80] }}{% if q.text|length > 80 %}…{% endif %}</span>
+      <span class="sr-upcoming-reps">{{ sr.repetitions }}✓</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- How it works -->
+  <div class="sr-card sr-info-card">
+    <div class="sr-card-title" style="margin-bottom:.75rem">ℹ️ How Spaced Repetition Works</div>
+    <div class="sr-info-grid">
+      <div class="sr-info-item">
+        <span class="sr-info-icon">✗</span>
+        <span>Wrong answer → review <strong>tomorrow</strong></span>
+      </div>
+      <div class="sr-info-item">
+        <span class="sr-info-icon">✓</span>
+        <span>1st correct → review in <strong>3 days</strong></span>
+      </div>
+      <div class="sr-info-item">
+        <span class="sr-info-icon">✓✓</span>
+        <span>2nd correct → review in <strong>~1 week</strong></span>
+      </div>
+      <div class="sr-info-item">
+        <span class="sr-info-icon">✓✓✓</span>
+        <span>3rd+ correct → review in <strong>2+ weeks</strong></span>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:.8rem;margin-top:.75rem">
+      Your review schedule updates automatically after every quiz session.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

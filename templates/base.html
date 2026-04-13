@@ -20,6 +20,7 @@
       <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a>
       <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
       <a href="{{ url_for('study') }}" class="nav-link {% if request.endpoint in ['study','start_study'] %}active{% endif %}">Study</a>
+      <a href="{{ url_for('review') }}" class="nav-link {% if request.endpoint in ['review','start_review'] %}active{% endif %}">Review</a>
       <a href="{{ url_for('missed') }}" class="nav-link {% if request.endpoint == 'missed' %}active{% endif %}">Missed</a>
       <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">History</a>
       <a href="{{ url_for('pbq') }}" class="nav-link {% if 'pbq' in request.endpoint %}active{% endif %}">Labs</a>

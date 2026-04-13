@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -43,3 +44,14 @@ class AttemptAnswer(db.Model):
     chosen_choice_id  = db.Column(db.Integer, nullable=True)
     chosen_choice_ids = db.Column(db.Text, default="")
     is_correct        = db.Column(db.Boolean, default=False)
+
+class SpacedRepetition(db.Model):
+    __tablename__ = "spaced_repetition"
+    id            = db.Column(db.Integer, primary_key=True)
+    question_id   = db.Column(db.Integer, db.ForeignKey("questions.id"), nullable=False, unique=True)
+    interval      = db.Column(db.Integer, default=1)      # days until next review
+    easiness      = db.Column(db.Float, default=2.5)      # SM-2 easiness factor
+    repetitions   = db.Column(db.Integer, default=0)      # times answered correctly in a row
+    next_review   = db.Column(db.Date, nullable=False)     # date of next review
+    last_reviewed = db.Column(db.Date, nullable=True)
+    question      = db.relationship("Question", backref="sr_data")

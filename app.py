@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-from models import db, Question, Choice, QuizAttempt, AttemptAnswer
-from datetime import datetime
+from models import db, Question, Choice, QuizAttempt, AttemptAnswer, SpacedRepetition
+from datetime import datetime, date, timedelta
 from sqlalchemy import func
 import random
 
@@ -478,6 +478,10 @@ def dashboard():
     c1_available = Question.query.filter_by(active=True, exam='core1').count()
     c2_available = Question.query.filter_by(active=True, exam='core2').count()
 
+    # SR due counts
+    c1_due = db.session.query(SpacedRepetition).join(Question)        .filter(Question.exam=='core1', SpacedRepetition.next_review<=today).count()
+    c2_due = db.session.query(SpacedRepetition).join(Question)        .filter(Question.exam=='core2', SpacedRepetition.next_review<=today).count()
+
     return render_template('dashboard.html',
         streak=streak,
         today=today,
@@ -488,8 +492,153 @@ def dashboard():
         c1_available=c1_available,
         c2_available=c2_available,
         total_attempts=len(all_attempts),
-        total_questions_done=sum(a.total_questions for a in all_attempts)
+        total_questions_done=sum(a.total_questions for a in all_attempts),
+        c1_due=c1_due,
+        c2_due=c2_due
     )
+
+
+# ── Spaced Repetition ─────────────────────────────────────────────────────────
+
+def sm2_update(sr, correct):
+    """Update SM-2 spaced repetition data based on answer correctness."""
+    today = date.today()
+    sr.last_reviewed = today
+
+    if correct:
+        sr.repetitions += 1
+        if sr.repetitions == 1:
+            sr.interval = 1
+        elif sr.repetitions == 2:
+            sr.interval = 3
+        else:
+            sr.interval = round(sr.interval * sr.easiness)
+        # Update easiness factor (keep between 1.3 and 2.5)
+        sr.easiness = max(1.3, min(2.5, sr.easiness + 0.1))
+    else:
+        # Wrong answer — reset repetitions, review tomorrow
+        sr.repetitions = 0
+        sr.interval = 1
+        sr.easiness = max(1.3, sr.easiness - 0.2)
+
+    sr.next_review = today + timedelta(days=sr.interval)
+    return sr
+
+def get_or_create_sr(question_id):
+    """Get or create a SpacedRepetition record for a question."""
+    sr = SpacedRepetition.query.filter_by(question_id=question_id).first()
+    if not sr:
+        sr = SpacedRepetition(
+            question_id=question_id,
+            next_review=date.today(),
+            interval=1,
+            easiness=2.5,
+            repetitions=0
+        )
+        db.session.add(sr)
+    return sr
+
+@app.route('/review')
+def review():
+    exam = request.args.get('exam', 'core1')
+    today = date.today()
+
+    # Questions due for review today or overdue
+    due = db.session.query(SpacedRepetition).join(Question)        .filter(Question.exam == exam,
+                Question.active == True,
+                SpacedRepetition.next_review <= today)        .order_by(SpacedRepetition.next_review).all()
+
+    due_ids = [sr.question_id for sr in due]
+
+    # New questions not yet in SR system
+    reviewed_ids = db.session.query(SpacedRepetition.question_id).all()
+    reviewed_ids = [r[0] for r in reviewed_ids]
+    new_q = Question.query.filter_by(active=True, exam=exam)        .filter(~Question.id.in_(reviewed_ids) if reviewed_ids else True)        .limit(10).all()
+    new_ids = [q.id for q in new_q]
+
+    # Stats
+    total_in_sr = db.session.query(SpacedRepetition).join(Question)        .filter(Question.exam == exam).count()
+    total_q = Question.query.filter_by(active=True, exam=exam).count()
+
+    # Upcoming reviews
+    upcoming = db.session.query(SpacedRepetition, Question)        .join(Question, SpacedRepetition.question_id == Question.id)        .filter(Question.exam == exam,
+                SpacedRepetition.next_review > today)        .order_by(SpacedRepetition.next_review)        .limit(5).all()
+
+    return render_template('review.html',
+        exam=exam,
+        due_count=len(due_ids),
+        new_count=len(new_ids),
+        due_ids=due_ids,
+        new_ids=new_ids,
+        total_in_sr=total_in_sr,
+        total_q=total_q,
+        upcoming=upcoming,
+        today=today
+    )
+
+@app.route('/review/start', methods=['POST'])
+def start_review():
+    exam = request.form.get('exam', 'core1')
+    mode = request.form.get('mode', 'due')  # 'due' or 'new'
+    today = date.today()
+
+    if mode == 'due':
+        due = db.session.query(SpacedRepetition).join(Question)            .filter(Question.exam == exam,
+                    Question.active == True,
+                    SpacedRepetition.next_review <= today)            .order_by(SpacedRepetition.next_review).all()
+        question_ids = [sr.question_id for sr in due]
+    else:
+        reviewed_ids = [r[0] for r in db.session.query(SpacedRepetition.question_id).all()]
+        new_q = Question.query.filter_by(active=True, exam=exam)            .filter(~Question.id.in_(reviewed_ids) if reviewed_ids else True)            .limit(20).all()
+        question_ids = [q.id for q in new_q]
+
+    if not question_ids:
+        return redirect(url_for('review', exam=exam))
+
+    random.shuffle(question_ids)
+    passing_score = 675 if exam == 'core1' else 700
+    return render_template('quiz.html',
+        question_ids=question_ids,
+        total=len(question_ids),
+        time_limit=len(question_ids) * 90,
+        domains_label='Spaced Review',
+        exam=exam,
+        passing_score=passing_score,
+        simulation_mode=False,
+        per_q_timer=False,
+        review_mode=True
+    )
+
+@app.route('/api/sr/update', methods=['POST'])
+def update_sr():
+    """Called after each quiz to update SR data for answered questions."""
+    data = request.json
+    answers = data.get('answers', {})
+    question_ids = data.get('question_ids', [])
+
+    for qid_str in question_ids:
+        qid = int(qid_str) if isinstance(qid_str, str) else qid_str
+        q = Question.query.get(qid)
+        if not q:
+            continue
+        # Determine if correct
+        answer_val = answers.get(str(qid))
+        if q.multi_select:
+            correct_ids = set(str(c.id) for c in q.choices if c.is_correct)
+            if isinstance(answer_val, list):
+                user_ids = set(str(i) for i in answer_val)
+            else:
+                user_ids = set()
+            correct = user_ids == correct_ids
+        else:
+            correct_choice = next((c for c in q.choices if c.is_correct), None)
+            correct = bool(correct_choice and answer_val and
+                          int(answer_val) == correct_choice.id)
+        sr = get_or_create_sr(qid)
+        sm2_update(sr, correct)
+
+    db.session.commit()
+    return jsonify({'updated': len(question_ids)})
 
 # ── Exam Simulation Mode ──────────────────────────────────────────────────────
 

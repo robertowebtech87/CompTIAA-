@@ -4,21 +4,66 @@
 <div class="page-wrap">
   <div class="admin-header">
     <h1 class="page-title">Question Bank</h1>
-    <a href="{{ url_for('new_question') }}" class="btn-add">+ Add Question</a>
+    <a href="{{ url_for('new_question', exam=exam) }}" class="btn-add">+ Add Question</a>
+  </div>
+
+  <!-- Exam Tabs -->
+  <div class="exam-tabs" style="max-width:400px;margin-bottom:1.5rem">
+    <button class="exam-tab {% if exam == 'core1' %}active{% endif %}"
+            onclick="window.location='{{ url_for('admin', exam='core1') }}'">
+      <span class="exam-tab-title">Core 1</span>
+      <span class="exam-tab-sub">220-1101</span>
+    </button>
+    <button class="exam-tab {% if exam == 'core2' %}active{% endif %}"
+            onclick="window.location='{{ url_for('admin', exam='core2') }}'">
+      <span class="exam-tab-title">Core 2</span>
+      <span class="exam-tab-sub">220-1102</span>
+    </button>
   </div>
 
   {% if questions %}
+  <!-- Search and filter bar -->
+  <div class="admin-search-row">
+    <input type="text" id="admin-search" class="admin-search-input"
+           placeholder="🔍 Search questions, domains, answers…"
+           oninput="filterAdmin()">
+    <select id="admin-domain-filter" class="admin-domain-select" onchange="filterAdmin()">
+      <option value="">All Domains</option>
+      {% set domains = questions | map(attribute='domain') | unique | sort | list %}
+      {% for d in domains %}
+      {% if d %}
+      <option value="{{ d }}">{{ d }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+    <select id="admin-status-filter" class="admin-domain-select" onchange="filterAdmin()">
+      <option value="">All Status</option>
+      <option value="active">Active only</option>
+      <option value="inactive">Inactive only</option>
+    </select>
+    <span class="admin-count" id="admin-count">{{ questions|length }} questions</span>
+  </div>
+
   <div class="admin-stats">
     <span>Total: <strong>{{ questions|length }}</strong></span>
     <span>Active: <strong>{{ questions|selectattr('active')|list|length }}</strong></span>
     <span>Inactive: <strong>{{ questions|rejectattr('active')|list|length }}</strong></span>
+    <span>Multi-select: <strong>{{ questions|selectattr('multi_select')|list|length }}</strong></span>
   </div>
 
-  <div class="admin-list">
+  <div class="admin-list" id="admin-list">
     {% for q in questions %}
-    <div class="admin-item {{ '' if q.active else 'inactive' }}" id="qrow-{{ q.id }}">
+    <div class="admin-item {{ '' if q.active else 'inactive' }}"
+         id="qrow-{{ q.id }}"
+         data-text="{{ q.text | lower }}"
+         data-domain="{{ q.domain | lower }}"
+         data-status="{{ 'active' if q.active else 'inactive' }}"
+         data-choices="{{ q.choices | map(attribute='text') | join(' ') | lower }}">
       <div class="admin-item-top">
         <span class="admin-domain">{{ q.domain or 'No Domain' }}</span>
+        {% if q.multi_select %}
+        <span class="badge-sm" style="background:rgba(240,192,64,.15);color:var(--accent);font-size:.65rem">SELECT TWO</span>
+        {% endif %}
         <span class="admin-status {{ 'active' if q.active else 'off' }}" id="status-{{ q.id }}">
           {{ 'Active' if q.active else 'Inactive' }}
         </span>
@@ -29,6 +74,9 @@
         <span class="choice-chip {{ 'correct-chip' if c.is_correct else '' }}">{{ c.text }}</span>
         {% endfor %}
       </div>
+      {% if q.explanation %}
+      <div class="admin-explanation">💡 {{ q.explanation }}</div>
+      {% endif %}
       <div class="admin-actions">
         <a href="{{ url_for('edit_question', qid=q.id) }}" class="btn-sm edit">Edit</a>
         <button class="btn-sm toggle" onclick="toggleQ({{ q.id }})">
@@ -42,10 +90,51 @@
     </div>
     {% endfor %}
   </div>
+
+  <div id="admin-empty" style="display:none" class="empty-state">
+    <p>No questions match your search.</p>
+  </div>
+
   {% else %}
-    <div class="empty-state">
-      <p>No questions yet. <a href="{{ url_for('new_question') }}">Add your first question!</a></p>
-    </div>
+  <div class="empty-state">
+    <p>No {{ exam|upper }} questions yet.
+      <a href="{{ url_for('new_question', exam=exam) }}">Add your first question!</a>
+    </p>
+  </div>
   {% endif %}
 </div>
+
+<script>
+function filterAdmin() {
+  const search = document.getElementById('admin-search').value.toLowerCase().trim();
+  const domain = document.getElementById('admin-domain-filter').value.toLowerCase();
+  const status = document.getElementById('admin-status-filter').value;
+  const items = document.querySelectorAll('.admin-item');
+  let visible = 0;
+
+  items.forEach(item => {
+    const text = item.dataset.text || '';
+    const itemDomain = item.dataset.domain || '';
+    const itemStatus = item.dataset.status || '';
+    const choices = item.dataset.choices || '';
+
+    const matchSearch = !search ||
+      text.includes(search) ||
+      itemDomain.includes(search) ||
+      choices.includes(search);
+    const matchDomain = !domain || itemDomain === domain;
+    const matchStatus = !status || itemStatus === status;
+
+    if (matchSearch && matchDomain && matchStatus) {
+      item.style.display = '';
+      visible++;
+    } else {
+      item.style.display = 'none';
+    }
+  });
+
+  document.getElementById('admin-count').textContent = `${visible} questions`;
+  document.getElementById('admin-empty').style.display = visible === 0 ? 'block' : 'none';
+}
+</script>
 {% endblock %}

@@ -48,3 +48,4 @@ The SQLite database (`comptia.db`) is created automatically on first run.
 ## Exam info
 - CompTIA A+ Core 1 (220-1101) — passing score: **675/900**
 - CompTIA A+ Core 2 (220-1102) — passing score: **700/900**
+

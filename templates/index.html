@@ -169,6 +169,50 @@
         <a href="{{ url_for('simulate', exam='core2') }}" class="exam-action-link" style="border-color:rgba(74,222,128,.4);color:var(--accent2)">🎯 Simulate Exam</a>
       </div>
     </div>
+
+    <!-- IT Fundamentals Panel -->
+    <div class="exam-panel" id="panel-intro" style="display:none">
+      <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
+        <input type="hidden" name="exam" value="intro">
+
+        {% if intro.total_questions > 0 %}
+        <div class="form-row">
+          <label class="form-label">Choose Categories</label>
+          <div class="domain-grid">
+            <label class="domain-chip all-chip selected">
+              <input type="checkbox" name="domains" value="all" checked>
+              <span class="chip-icon">⬡</span>
+              All Categories
+              <span class="chip-count">{{ intro.total_questions }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Number of Questions</label>
+          <div class="slider-wrap">
+            <input type="range" id="intro-num-q" name="num_questions" min="5"
+                   max="{{ [intro.total_questions, 58]|min }}" value="{{ [intro.total_questions, 20]|min }}"
+                   oninput="document.getElementById('intro-qval').textContent = this.value">
+            <span class="slider-val" id="intro-qval">{{ [intro.total_questions, 20]|min }}</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Options</label>
+          <label class="toggle-option">
+            <input type="checkbox" name="per_q_timer" value="1">
+            <span class="toggle-box"></span>
+            <span class="toggle-label">⏱ Per-question timer <span class="toggle-sub">(90 sec each)</span></span>
+          </label>
+        </div>
+        <button type="submit" class="btn-start" style="background:#818cf8;color:#0d0f14">
+          Start IT Fundamentals Quiz →
+        </button>
+        {% else %}
+        <div class="empty-state"><p>No IT Fundamentals questions yet. Run seed_it_fundamentals.py</p></div>
+        {% endif %}
+      </form>
+    </div>
+
   </div>
 </div>
 

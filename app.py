@@ -60,7 +60,7 @@ def index():
     core2 = get_exam_stats('core2')
     intro = get_exam_stats('intro')
     recent = QuizAttempt.query.order_by(QuizAttempt.created_at.desc()).limit(5).all()
-    return render_template('index.html', core1=core1, core2=core2, recent=recent)
+    return render_template('index.html', core1=core1, core2=core2, intro=intro, recent=recent)
 
 # ── Quiz ──────────────────────────────────────────────────────────────────────
 

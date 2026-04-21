@@ -58,6 +58,7 @@ def get_exam_stats(exam):
 def index():
     core1 = get_exam_stats('core1')
     core2 = get_exam_stats('core2')
+    intro = get_exam_stats('intro')
     recent = QuizAttempt.query.order_by(QuizAttempt.created_at.desc()).limit(5).all()
     return render_template('index.html', core1=core1, core2=core2, recent=recent)
 
@@ -80,7 +81,7 @@ def start_quiz():
     sample = random.sample(questions, min(num_questions, len(questions)))
     question_ids = [q.id for q in sample]
     domains_label = ', '.join(selected_domains) if selected_domains and 'all' not in selected_domains else 'All Categories'
-    passing_score = 675 if exam == 'core1' else 700
+    passing_score = 675 if exam == 'core1' else (700 if exam == 'core2' else 700)
     return render_template('quiz.html', question_ids=question_ids,
                            total=len(question_ids),
                            time_limit=len(question_ids) * 60,
@@ -302,7 +303,7 @@ def missed_quiz():
     random.shuffle(question_ids)
     if not question_ids:
         return redirect(url_for('missed', exam=exam))
-    passing_score = 675 if exam == 'core1' else 700
+    passing_score = 675 if exam == 'core1' else (700 if exam == 'core2' else 700)
     return render_template('quiz.html', question_ids=question_ids,
                            total=len(question_ids),
                            time_limit=len(question_ids) * 60,

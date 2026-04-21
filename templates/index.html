@@ -18,6 +18,10 @@
         <span class="exam-tab-title">Core 2</span>
         <span class="exam-tab-sub">220-1102</span>
       </button>
+      <button class="exam-tab" id="tab-intro" onclick="selectExam('intro')">
+        <span class="exam-tab-title">IT Fundamentals</span>
+        <span class="exam-tab-sub">Introduction</span>
+      </button>
     </div>
 
     <!-- Core 1 Panel -->
@@ -187,10 +191,12 @@
 
 <script>
 function selectExam(exam) {
-  document.getElementById('panel-core1').style.display = exam === 'core1' ? 'block' : 'none';
-  document.getElementById('panel-core2').style.display = exam === 'core2' ? 'block' : 'none';
-  document.getElementById('tab-core1').classList.toggle('active', exam === 'core1');
-  document.getElementById('tab-core2').classList.toggle('active', exam === 'core2');
+  ['core1','core2','intro'].forEach(e => {
+    const panel = document.getElementById('panel-' + e);
+    const tab = document.getElementById('tab-' + e);
+    if (panel) panel.style.display = e === exam ? 'block' : 'none';
+    if (tab) tab.classList.toggle('active', e === exam);
+  });
 }
 
 function toggleAll(cb, prefix) {

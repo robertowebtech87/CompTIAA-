@@ -1383,3 +1383,13 @@ body.sim-active .main-content { padding-top: 0; }
   .admin-search-row { flex-direction: column; align-items: stretch; }
   .admin-search-input { min-width: unset; }
 }
+
+/* ─── IT Fundamentals intro tab ─────────────────────────────────────────── */
+#tab-intro.active {
+  border-color: #818cf8;
+  color: #818cf8;
+  background: rgba(129,140,248,.08);
+}
+.btn-start[style*="818cf8"]:hover {
+  opacity: .88;
+}

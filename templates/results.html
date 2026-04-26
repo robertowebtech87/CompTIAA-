@@ -92,7 +92,20 @@
     <a href="{{ url_for('index') }}" class="btn-action secondary">← Home</a>
     <a href="{{ url_for('missed', exam=attempt.exam) }}" class="btn-action secondary">Missed Questions</a>
     <a href="{{ url_for('dashboard') }}" class="btn-action secondary">📊 Dashboard</a>
-    <a href="{{ url_for('index') }}" class="btn-action primary">Try Again →</a>
+
+    <!-- Try Again — re-runs the same quiz with same exam, domains and question count -->
+    <form action="{{ url_for('start_quiz') }}" method="POST" style="display:inline">
+      <input type="hidden" name="exam" value="{{ attempt.exam }}">
+      <input type="hidden" name="num_questions" value="{{ attempt.total_questions }}">
+      {% if quiz_domains %}
+        {% for d in quiz_domains %}
+        <input type="hidden" name="domains" value="{{ d }}">
+        {% endfor %}
+      {% else %}
+        <input type="hidden" name="domains" value="all">
+      {% endif %}
+      <button type="submit" class="btn-action primary">Try Again →</button>
+    </form>
   </div>
 </div>
 {% endblock %}

@@ -70,17 +70,23 @@ def start_quiz():
     selected_domains = request.form.getlist('domains')
     exam = request.form.get('exam', 'core1')
     per_q_timer = request.form.get('per_q_timer') == '1'
+    retry_ids = request.form.get('retry_ids', '')
 
-    query = Question.query.filter_by(active=True, exam=exam)
-    if selected_domains and 'all' not in selected_domains:
-        query = query.filter(Question.domain.in_(selected_domains))
+    # If retry_ids provided — use exact same questions
+    if retry_ids:
+        question_ids = [int(i) for i in retry_ids.split(',') if i]
+        domains_label = 'Try Again'
+    else:
+        query = Question.query.filter_by(active=True, exam=exam)
+        if selected_domains and 'all' not in selected_domains:
+            query = query.filter(Question.domain.in_(selected_domains))
+        questions = query.all()
+        if not questions:
+            return redirect(url_for('index'))
+        sample = random.sample(questions, min(num_questions, len(questions)))
+        question_ids = [q.id for q in sample]
+        domains_label = ', '.join(selected_domains) if selected_domains and 'all' not in selected_domains else 'All Categories'
 
-    questions = query.all()
-    if not questions:
-        return redirect(url_for('index'))
-    sample = random.sample(questions, min(num_questions, len(questions)))
-    question_ids = [q.id for q in sample]
-    domains_label = ', '.join(selected_domains) if selected_domains and 'all' not in selected_domains else 'All Categories'
     passing_score = 675 if exam == 'core1' else (700 if exam == 'core2' else 700)
     return render_template('quiz.html', question_ids=question_ids,
                            total=len(question_ids),

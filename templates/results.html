@@ -95,17 +95,12 @@
 
     <!-- Try Again — re-runs the same quiz with same exam, domains and question count -->
     <form action="{{ url_for('start_quiz') }}" method="POST" style="display:inline">
-      <input type="hidden" name="exam" value="{{ attempt.exam }}">
-      <input type="hidden" name="num_questions" value="{{ attempt.total_questions }}">
-      {% if quiz_domains %}
-        {% for d in quiz_domains %}
-        <input type="hidden" name="domains" value="{{ d }}">
-        {% endfor %}
-      {% else %}
-        <input type="hidden" name="domains" value="all">
-      {% endif %}
-      <button type="submit" class="btn-action primary">Try Again →</button>
-    </form>
+  <input type="hidden" name="exam" value="{{ attempt.exam }}">
+  <input type="hidden" name="num_questions" value="{{ attempt.total_questions }}">
+  <input type="hidden" name="domains" value="all">
+  <input type="hidden" name="retry_ids" value="{{ attempt_question_ids | join(',') }}">
+  <button type="submit" class="btn-action primary">Try Again →</button>
+</form>
   </div>
 </div>
 {% endblock %}

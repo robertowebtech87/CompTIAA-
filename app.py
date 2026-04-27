@@ -223,11 +223,11 @@ def results(attempt_id):
         })
     domain_breakdown.sort(key=lambda x: x['percent'])
     passing_score = 675 if attempt.exam == 'core1' else 700
-    quiz_domains = list(set(d['domain'] for d in details if d['domain']))
+    attempt_question_ids = [aa.question_id for aa in answers]
     return render_template('results.html', attempt=attempt, details=details,
                            domain_breakdown=domain_breakdown,
                            passing_score=passing_score,
-                           quiz_domains=quiz_domains)
+                           attempt_question_ids=attempt_question_ids)
 
 # ── History ───────────────────────────────────────────────────────────────────
 

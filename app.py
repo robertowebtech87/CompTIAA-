@@ -44,12 +44,28 @@ def get_exam_stats(exam):
         Question.domain, func.count(Question.id)
     ).filter_by(active=True, exam=exam)\
      .group_by(Question.domain).order_by(Question.domain).all()
-    domains = [{'name': d, 'count': c} for d, c in domain_counts if d]
+
+    # Main exam objective categories
+    main_cats = [
+        'Mobile Devices',
+        'Networking',
+        'Hardware',
+        'Virtualization & Cloud',
+        'Troubleshooting',
+    ]
+
+    domains = [{'name': d, 'count': c} for d, c in domain_counts
+               if d and d in main_cats]
+
+    specific_domains = [{'name': d, 'count': c} for d, c in domain_counts
+                        if d and d not in main_cats]
+
     return {
         'total_questions': total_q,
         'total_attempts': total_attempts,
         'best_score': round(best_score, 1),
-        'domains': domains
+        'domains': domains,
+        'specific_domains': specific_domains
     }
 
 # ── Home ──────────────────────────────────────────────────────────────────────

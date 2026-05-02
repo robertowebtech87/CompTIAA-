@@ -47,6 +47,7 @@
 
       <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
         <input type="hidden" name="exam" value="core1">
+
         {% if core1.domains %}
         <div class="form-row">
           <label class="form-label">Categories</label>
@@ -64,8 +65,28 @@
             </label>
             {% endfor %}
           </div>
+
+          {% if core1.specific_domains %}
+          <div style="margin-top:1rem">
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">🎯 Specific Topics</div>
+            <div class="domain-grid">
+              {% for d in core1.specific_domains %}
+              <label class="domain-chip" id="c1-specific-{{ loop.index }}"
+                     style="border-color:rgba(129,140,248,.4)">
+                <input type="checkbox" name="domains" value="{{ d.name }}"
+                       onchange="toggleDomain(this,'c1')">
+                <span class="chip-dot" style="background:#818cf8"></span>
+                {{ d.name }}
+                <span class="chip-count">{{ d.count }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
         </div>
         {% endif %}
+
         <div class="form-row">
           <label class="form-label">Number of questions</label>
           <div class="slider-wrap">
@@ -174,7 +195,6 @@
     <div class="exam-panel" id="panel-intro" style="display:none">
       <form action="{{ url_for('start_quiz') }}" method="POST" class="start-form">
         <input type="hidden" name="exam" value="intro">
-
         {% if intro.total_questions > 0 %}
         <div class="form-row">
           <label class="form-label">Choose Categories</label>
@@ -208,7 +228,7 @@
           Start IT Fundamentals Quiz →
         </button>
         {% else %}
-        <div class="empty-state"><p>No IT Fundamentals questions yet. Run seed_it_fundamentals.py</p></div>
+        <div class="empty-state"><p>No IT Fundamentals questions yet.</p></div>
         {% endif %}
       </form>
     </div>
@@ -237,32 +257,46 @@
 function selectExam(exam) {
   ['core1','core2','intro'].forEach(e => {
     const panel = document.getElementById('panel-' + e);
-    const tab = document.getElementById('tab-' + e);
-    if (panel) panel.style.display = e === exam ? 'block' : 'none';
-    if (tab) tab.classList.toggle('active', e === exam);
+    const tab   = document.getElementById('tab-'   + e);
+    if (panel) panel.style.display = (e === exam) ? 'block' : 'none';
+    if (tab)   tab.classList.toggle('active', e === exam);
   });
 }
 
+// Ensure Core 1 is always shown on page load
+document.addEventListener('DOMContentLoaded', function() {
+  selectExam('core1');
+});
+
 function toggleAll(cb, prefix) {
-  const domainCbs = document.querySelectorAll(`#panel-${prefix === 'c1' ? 'core1' : 'core2'} input[name="domains"]:not([value="all"])`);
+  const panelId = prefix === 'c1' ? 'core1' : 'core2';
+  const domainCbs = document.querySelectorAll(`#panel-${panelId} input[name="domains"]:not([value="all"])`);
   const allChip = document.getElementById(`${prefix}-chip-all`);
   if (cb.checked) {
     domainCbs.forEach(c => { c.checked = false; c.closest('.domain-chip').classList.remove('selected'); });
     allChip.classList.add('selected');
-  } else { cb.checked = true; }
+  } else {
+    cb.checked = true;
+  }
 }
 
 function toggleDomain(cb, prefix) {
-  const panel = document.getElementById(`panel-${prefix === 'c1' ? 'core1' : 'core2'}`);
-  const allCb = panel.querySelector('input[value="all"]');
+  const panelId = prefix === 'c1' ? 'core1' : 'core2';
+  const panel   = document.getElementById(`panel-${panelId}`);
+  const allCb   = panel.querySelector('input[value="all"]');
   const allChip = document.getElementById(`${prefix}-chip-all`);
-  const chip = cb.closest('.domain-chip');
+  const chip    = cb.closest('.domain-chip');
   if (cb.checked) {
-    allCb.checked = false; allChip.classList.remove('selected'); chip.classList.add('selected');
+    allCb.checked = false;
+    allChip.classList.remove('selected');
+    chip.classList.add('selected');
   } else {
     chip.classList.remove('selected');
     const anySelected = panel.querySelectorAll('input[name="domains"]:not([value="all"]):checked').length > 0;
-    if (!anySelected) { allCb.checked = true; allChip.classList.add('selected'); }
+    if (!anySelected) {
+      allCb.checked = true;
+      allChip.classList.add('selected');
+    }
   }
 }
 </script>
